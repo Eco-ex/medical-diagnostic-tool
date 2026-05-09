@@ -1,6 +1,5 @@
 import express, { Request, Response } from 'express';
-import { v4 as uuidv4 } from 'uuid';
-import { 
+import {
   Patient, 
   NewPatient, 
   Vitals, 
@@ -21,6 +20,7 @@ import {
 } from '../services/database';
 import { authenticateToken, requireAdmin, requireUser } from '../middleware/auth';
 import { analyzeTreatmentWithOpenAI } from '../services/openai';
+import { logAudit } from '../services/audit';
 
 const router = express.Router();
 
@@ -110,6 +110,12 @@ router.post('/', requireAdmin, (req: Request, res: Response) => {
     };
 
     dbAddPatient(patient);
+    logAudit({
+      userId: req.user!.userId,
+      action: 'patient.create',
+      patientId: patient.patientId,
+      details: `name=${patient.name}`,
+    });
     res.status(201).json({ message: 'Patient added successfully', patientId: patient.patientId });
   } catch (error: any) {
     console.error('Add patient error:', error);
@@ -136,6 +142,11 @@ router.put('/:patientId', requireAdmin, (req: Request, res: Response) => {
     }
 
     dbUpdatePatient(patientId, updatedPatient);
+    logAudit({
+      userId: req.user!.userId,
+      action: 'patient.update',
+      patientId: updatedPatient.patientId,
+    });
     res.json({ message: 'Patient updated successfully', patientId: updatedPatient.patientId });
   } catch (error: any) {
     if (error.message === 'Patient not found') {
@@ -151,6 +162,11 @@ router.put('/:patientId', requireAdmin, (req: Request, res: Response) => {
 router.delete('/:patientId', requireAdmin, (req: Request, res: Response) => {
   try {
     dbDeletePatient(req.params.patientId);
+    logAudit({
+      userId: req.user!.userId,
+      action: 'patient.delete',
+      patientId: req.params.patientId,
+    });
     res.json({ message: 'Patient deleted successfully' });
   } catch (error: any) {
     if (error.message === 'Patient not found') {

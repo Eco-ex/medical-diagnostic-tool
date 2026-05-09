@@ -26,7 +26,7 @@ import ChatPanel from './ChatPanel';
 import SummaryPanel from './SummaryPanel';
 import EditPatientModal from './EditPatientModal';
 import { toast } from 'sonner';
-import type { PatientId } from '../backend';
+import type { PatientId } from '../types';
 
 interface PatientDashboardProps {
   patientId: PatientId;

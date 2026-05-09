@@ -76,11 +76,13 @@ Access the application at http://localhost:5173
 ```env
 PORT=3001
 NODE_ENV=development
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_SECRET=replace-with-strong-random-value-at-least-32-bytes
 OPENAI_API_KEY=
 DATA_DIR=./data
 CORS_ORIGIN=http://localhost:5173
 ```
+
+See the [Secrets](#-secrets) section for how to generate `JWT_SECRET`.
 
 ### Frontend Configuration (.env)
 
@@ -146,6 +148,21 @@ clinical-decision-support-tool/
 - CORS configuration
 - Helmet.js security headers
 - Input validation and sanitization
+- Rate limiting on authentication endpoints
+- Audit logging on sensitive operations
+- OpenAI API key masked in admin read responses
+
+## 🔑 Secrets
+
+`backend-new/.env` is **never committed** — it is excluded by `backend-new/.gitignore`. Only `.env.example` is tracked.
+
+Generate a strong `JWT_SECRET` with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+Rotate the secret on every deploy and any time you suspect it has leaked. All issued JWTs become invalid after rotation, so users will need to log in again.
 
 ## 🗄️ Data Persistence
 
@@ -200,14 +217,30 @@ By default, the application uses JSON file storage in the `data/` directory:
 
 ## 🧪 Testing
 
-```bash
-# Backend tests (when implemented)
-cd backend-new
-npm test
+Both projects use [Vitest](https://vitest.dev/).
 
-# Frontend tests (when implemented)
+```bash
+# Backend
+cd backend-new
+npm test           # one-shot
+npm run test:watch # watch mode
+
+# Frontend
 cd frontend
 npm test
+```
+
+Lint and format:
+
+```bash
+# Backend
+cd backend-new
+npm run lint
+npm run format
+
+# Frontend
+cd frontend
+npm run lint
 ```
 
 ## 📦 Production Deployment

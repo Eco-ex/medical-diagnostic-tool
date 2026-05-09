@@ -1,14 +1,32 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import rateLimit from 'express-rate-limit';
 import { v4 as uuidv4 } from 'uuid';
 import { LoginRequest, AuthResponse, UserProfile, User } from '../types';
 import { getUserByUsername, addUser, userExists, getAllUsers, updateUser } from '../services/database';
 import { generateToken, authenticateToken } from '../middleware/auth';
+import { logAudit } from '../services/audit';
 
 const router = express.Router();
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many registration attempts. Please try again later.' },
+});
+
 // Register new user (first user becomes admin)
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', registerLimiter, async (req: Request, res: Response) => {
   try {
     const { username, password, name } = req.body;
 
@@ -42,6 +60,12 @@ router.post('/register', async (req: Request, res: Response) => {
       role: user.role
     });
 
+    logAudit({
+      userId: user.userId,
+      action: 'user.register',
+      details: `username=${username}; role=${user.role}`,
+    });
+
     const response: AuthResponse = {
       token,
       userId: user.userId,
@@ -57,7 +81,7 @@ router.post('/register', async (req: Request, res: Response) => {
 });
 
 // Login
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', loginLimiter, async (req: Request, res: Response) => {
   try {
     const { username, password }: LoginRequest = req.body;
 
@@ -68,12 +92,22 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const user = getUserByUsername(username);
     if (!user) {
+      logAudit({
+        userId: 'anonymous',
+        action: 'user.login.failed',
+        details: `username=${username}; reason=user_not_found`,
+      });
       res.status(401).json({ error: 'Invalid credentials' });
       return;
     }
 
     const isValidPassword = await bcrypt.compare(password, user.passwordHash);
     if (!isValidPassword) {
+      logAudit({
+        userId: user.userId,
+        action: 'user.login.failed',
+        details: `username=${username}; reason=bad_password`,
+      });
       res.status(401).json({ error: 'Invalid credentials' });
       return;
     }
@@ -82,6 +116,12 @@ router.post('/login', async (req: Request, res: Response) => {
       userId: user.userId,
       username: user.username,
       role: user.role
+    });
+
+    logAudit({
+      userId: user.userId,
+      action: 'user.login',
+      details: `username=${username}`,
     });
 
     const response: AuthResponse = {
@@ -146,5 +186,3 @@ router.get('/is-admin', authenticateToken, (req: Request, res: Response) => {
 });
 
 export default router;
-
-

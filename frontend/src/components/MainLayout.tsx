@@ -6,7 +6,7 @@ import AdminSettings from './AdminSettings';
 import { useGetAllPatients } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import type { PatientId } from '../backend';
+import type { PatientId } from '../types';
 
 export default function MainLayout() {
   const [selectedPatientId, setSelectedPatientId] = useState<PatientId | null>(null);

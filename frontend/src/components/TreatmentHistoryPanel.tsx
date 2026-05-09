@@ -148,7 +148,7 @@ export default function TreatmentHistoryPanel({ patient }: TreatmentHistoryPanel
       const outcome: Outcome = {
         outcomeId: `out_${Date.now()}`,
         treatmentId: selectedTreatmentId,
-        date: BigInt(Date.now() * 1000000),
+        date: Date.now(),
         result: newOutcome.result,
         metrics: newOutcome.metrics,
       };
@@ -231,8 +231,8 @@ export default function TreatmentHistoryPanel({ patient }: TreatmentHistoryPanel
     }
   };
 
-  const sortedTreatments = [...patient.treatments].sort((a, b) => Number(b.date - a.date));
-  const sortedOutcomes = [...patient.outcomes].sort((a, b) => Number(b.date - a.date));
+  const sortedTreatments = [...patient.treatments].sort((a, b) => b.date - a.date);
+  const sortedOutcomes = [...patient.outcomes].sort((a, b) => b.date - a.date);
 
   const getOutcomeCountForTreatment = (treatmentId: string) => {
     return patient.outcomes.filter((o) => o.treatmentId === treatmentId).length;

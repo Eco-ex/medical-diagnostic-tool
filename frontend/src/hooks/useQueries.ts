@@ -548,7 +548,7 @@ export function useAnalyzeTreatmentWithOpenAi() {
 }
 
 export function useGetOpenAiApiKey() {
-  return useQuery<string>({
+  return useQuery<{ openAiApiKey: string; hasKey: boolean }>({
     queryKey: ['openAiApiKey'],
     queryFn: async () => {
       return apiClient.getOpenAiApiKey();

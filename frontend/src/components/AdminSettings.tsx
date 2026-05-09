@@ -12,8 +12,10 @@ import { Separator } from '@/components/ui/separator';
 export default function AdminSettings() {
   const [openAiKey, setOpenAiKey] = useState('');
   
-  const { data: currentApiKey, isLoading: configLoading } = useGetOpenAiApiKey();
+  const { data: keyInfo, isLoading: configLoading } = useGetOpenAiApiKey();
   const updateOpenAiKey = useUpdateOpenAiApiKey();
+  const hasKey = !!keyInfo?.hasKey;
+  const maskedKey = keyInfo?.openAiApiKey ?? '';
 
   const handleUpdateOpenAiKey = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,11 +40,6 @@ export default function AdminSettings() {
     }
   };
 
-  const maskApiKey = (key: string) => {
-    if (!key || key.length < 8) return '••••••••';
-    return key.substring(0, 8) + '•'.repeat(Math.max(0, key.length - 8));
-  };
-
   return (
     <div className="container mx-auto max-w-4xl space-y-6 p-6">
       <div>
@@ -54,8 +51,8 @@ export default function AdminSettings() {
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Security Notice</AlertTitle>
         <AlertDescription>
-          All configuration values are stored securely in the backend canister and are never exposed to unauthorized users.
-          Only administrators can view and modify these settings. All API communications are encrypted.
+          Only administrators can view or modify these settings. The API key is masked when fetched and only the
+          last four characters are shown. To rotate the key, paste a new value below and submit.
         </AlertDescription>
       </Alert>
 
@@ -84,11 +81,11 @@ export default function AdminSettings() {
                   <div>
                     <span className="text-muted-foreground">OpenAI API Key:</span>
                     <div className="mt-1 font-mono text-xs bg-background px-2 py-1 rounded border">
-                      {currentApiKey && currentApiKey.length > 0 ? maskApiKey(currentApiKey) : 'Not configured'}
+                      {hasKey ? maskedKey : 'Not configured'}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    {currentApiKey && currentApiKey.length > 0 ? (
+                    {hasKey ? (
                       <>
                         <CheckCircle className="h-3 w-3 text-green-600" />
                         <span className="text-green-600">API key is configured</span>
@@ -118,7 +115,7 @@ export default function AdminSettings() {
                     disabled={updateOpenAiKey.isPending}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Enter your OpenAI API key (starts with "sk-"). It will be securely stored in the backend canister.
+                    Enter your OpenAI API key (starts with "sk-"). It will be stored in the backend's settings file.
                   </p>
                 </div>
                 <Button type="submit" disabled={updateOpenAiKey.isPending || !openAiKey.trim()}>

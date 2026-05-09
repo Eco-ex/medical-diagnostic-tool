@@ -184,9 +184,11 @@ class ApiClient {
   }
 
   // Admin
-  async getOpenAiApiKey(): Promise<string> {
-    const response = await this.client.get<{ openAiApiKey: string }>('/api/admin/openai-key');
-    return response.data.openAiApiKey;
+  async getOpenAiApiKey(): Promise<{ openAiApiKey: string; hasKey: boolean }> {
+    const response = await this.client.get<{ openAiApiKey: string; hasKey: boolean }>(
+      '/api/admin/openai-key'
+    );
+    return response.data;
   }
 
   async updateOpenAiApiKey(apiKey: string): Promise<void> {

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useUpdateVitals } from '../hooks/useQueries';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Heart, Thermometer, Wind, Droplet, Edit } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Patient, Vitals } from '../backend';
+import type { Patient, Vitals } from '../types';
 
 interface VitalsPanelProps {
   patient: Patient;
@@ -88,7 +88,7 @@ export default function VitalsPanel({ patient }: VitalsPanelProps) {
                   id="heartRate"
                   type="number"
                   value={vitals.heartRate.toString()}
-                  onChange={(e) => setVitals({ ...vitals, heartRate: BigInt(e.target.value) })}
+                  onChange={(e) => setVitals({ ...vitals, heartRate: parseInt(e.target.value) || 0 })}
                 />
               </div>
               <div className="space-y-2">
@@ -116,7 +116,7 @@ export default function VitalsPanel({ patient }: VitalsPanelProps) {
                   id="respiratoryRate"
                   type="number"
                   value={vitals.respiratoryRate.toString()}
-                  onChange={(e) => setVitals({ ...vitals, respiratoryRate: BigInt(e.target.value) })}
+                  onChange={(e) => setVitals({ ...vitals, respiratoryRate: parseInt(e.target.value) || 0 })}
                 />
               </div>
               <div className="space-y-2">
@@ -125,7 +125,7 @@ export default function VitalsPanel({ patient }: VitalsPanelProps) {
                   id="oxygenSaturation"
                   type="number"
                   value={vitals.oxygenSaturation.toString()}
-                  onChange={(e) => setVitals({ ...vitals, oxygenSaturation: BigInt(e.target.value) })}
+                  onChange={(e) => setVitals({ ...vitals, oxygenSaturation: parseInt(e.target.value) || 0 })}
                 />
               </div>
               <Button type="submit" className="w-full" disabled={updateVitals.isPending}>

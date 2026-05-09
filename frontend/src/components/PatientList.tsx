@@ -24,7 +24,7 @@ import AddPatientModal from './AddPatientModal';
 import EditPatientModal from './EditPatientModal';
 import { useDeletePatient } from '../hooks/useQueries';
 import { toast } from 'sonner';
-import type { Patient, PatientId } from '../backend';
+import type { Patient, PatientId } from '../types';
 
 interface PatientListProps {
   patients: Patient[];

@@ -10,9 +10,10 @@ interface SelectContextType {
 
 const SelectContext = React.createContext<SelectContextType | undefined>(undefined);
 
-const Select = ({ value, onValueChange, children }: {
+const Select = ({ value, onValueChange, disabled, children }: {
   value?: string;
   onValueChange?: (value: string) => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) => {
   const [internalValue, setInternalValue] = React.useState('');
@@ -28,8 +29,13 @@ const Select = ({ value, onValueChange, children }: {
     setOpen(false);
   }, [isControlled, onValueChange]);
 
+  const setOpenIfEnabled = React.useCallback((next: boolean) => {
+    if (disabled) return;
+    setOpen(next);
+  }, [disabled]);
+
   return (
-    <SelectContext.Provider value={{ value: currentValue, onValueChange: handleValueChange, open, setOpen }}>
+    <SelectContext.Provider value={{ value: currentValue, onValueChange: handleValueChange, open, setOpen: setOpenIfEnabled }}>
       {children}
     </SelectContext.Provider>
   );

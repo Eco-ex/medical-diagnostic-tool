@@ -6,6 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Extend Express Request to include user
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: JwtPayload;

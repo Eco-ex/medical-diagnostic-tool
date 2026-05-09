@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAddNewPatient } from '../hooks/useQueries';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import type { NewPatient } from '../backend';
+import type { NewPatient } from '../types';
 
 interface AddPatientModalProps {
   open: boolean;
@@ -52,10 +52,10 @@ export default function AddPatientModal({ open, onOpenChange, onPatientAdded }: 
     const newPatient: NewPatient = {
       name: formData.name.trim(),
       patientId: formData.patientId.trim(),
-      age: BigInt(parseInt(formData.age)),
+      age: parseInt(formData.age),
       sex: formData.sex,
-      occupation: formData.occupation.trim() || undefined,
-      allergies: formData.allergies.trim() || undefined,
+      occupation: formData.occupation.trim() || null,
+      allergies: formData.allergies.trim() || null,
     };
 
     try {

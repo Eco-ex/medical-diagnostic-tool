@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, FileText, Search, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Patient, MedicalRecord } from '../backend';
+import type { Patient, MedicalRecord } from '../types';
 
 interface MedicalRecordsPanelProps {
   patient: Patient;
@@ -40,7 +40,7 @@ export default function MedicalRecordsPanel({ patient }: MedicalRecordsPanelProp
     try {
       const record: MedicalRecord = {
         recordId: `rec_${Date.now()}`,
-        date: BigInt(Date.now() * 1000000),
+        date: Date.now(),
         description: newRecord.description,
         details: newRecord.details,
       };
@@ -129,7 +129,7 @@ export default function MedicalRecordsPanel({ patient }: MedicalRecordsPanelProp
       record.details.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const sortedRecords = [...filteredRecords].sort((a, b) => Number(b.date - a.date));
+  const sortedRecords = [...filteredRecords].sort((a, b) => b.date - a.date);
 
   return (
     <>

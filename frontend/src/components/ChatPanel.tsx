@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Send, Bot, User, AlertTriangle, Loader2, AlertCircle, Settings, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { PatientId, ChatMessage } from '../backend';
+import type { PatientId, ChatMessage } from '../types';
 
 interface ChatPanelProps {
   patientId: PatientId;
@@ -204,7 +204,7 @@ export default function ChatPanel({ patientId }: ChatPanelProps) {
     try {
       const newMessage: ChatMessage = {
         messageId: `msg_${Date.now()}`,
-        timestamp: BigInt(Date.now() * 1000000),
+        timestamp: Date.now(),
         sender,
         content,
         patientId,
@@ -231,7 +231,7 @@ ${errorDetails.technicalDetails ? `**Technical Details:**\n${errorDetails.techni
 
       const analysisResponse: ChatMessage = {
         messageId: `msg_${Date.now()}_analysis`,
-        timestamp: BigInt(Date.now() * 1000000),
+        timestamp: Date.now(),
         sender: 'AI Assistant',
         content: responseContent,
         patientId,
