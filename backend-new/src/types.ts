@@ -1,31 +1,5 @@
-// User and Authentication Types
-export interface UserProfile {
-  name: string;
-}
-
-export interface User {
-  userId: string;
-  username: string;
-  passwordHash: string;
-  role: 'admin' | 'user';
-  profile: UserProfile | null;
-}
-
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  userId: string;
-  role: 'admin' | 'user';
-  profile: UserProfile | null;
-}
-
 // Patient Data Types
 export type PatientId = string;
-export type DoctorId = string;
 
 export interface Vitals {
   heartRate: number;
@@ -74,7 +48,6 @@ export interface Patient {
   treatments: Treatment[];
   outcomes: Outcome[];
   chatHistory: ChatMessage[];
-  assignedDoctor: DoctorId;
   age: number;
   sex: string;
   occupation: string | null;
@@ -92,19 +65,6 @@ export interface NewPatient {
   allergies: string | null;
 }
 
-export interface AuditLog {
-  logId: string;
-  timestamp: number;
-  userId: string;
-  action: string;
-  patientId: PatientId | null;
-  details: string;
-}
-
-export interface AdminSettings {
-  openAiApiKey: string;
-}
-
 // Request/Response Types
 export interface UpdateSummaryRequest {
   reasonForVisit: string;
@@ -114,12 +74,3 @@ export interface UpdateSummaryRequest {
 export interface AnalyzeTreatmentRequest {
   treatmentDescription: string;
 }
-
-// JWT Payload
-export interface JwtPayload {
-  userId: string;
-  username: string;
-  role: 'admin' | 'user';
-}
-
-

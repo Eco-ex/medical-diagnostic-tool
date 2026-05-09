@@ -1,14 +1,14 @@
 import express, { Request, Response } from 'express';
 import {
-  Patient, 
-  NewPatient, 
-  Vitals, 
-  MedicalRecord, 
-  Treatment, 
-  Outcome, 
+  Patient,
+  NewPatient,
+  Vitals,
+  MedicalRecord,
+  Treatment,
+  Outcome,
   ChatMessage,
   UpdateSummaryRequest,
-  AnalyzeTreatmentRequest 
+  AnalyzeTreatmentRequest,
 } from '../types';
 import {
   getAllPatients,
@@ -16,30 +16,24 @@ import {
   addPatient as dbAddPatient,
   updatePatient as dbUpdatePatient,
   deletePatient as dbDeletePatient,
-  patientExists
+  patientExists,
 } from '../services/database';
-import { authenticateToken, requireAdmin, requireUser } from '../middleware/auth';
 import { analyzeTreatmentWithOpenAI } from '../services/openai';
-import { logAudit } from '../services/audit';
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(authenticateToken);
-
 // Get all patients
-router.get('/', requireUser, (req: Request, res: Response) => {
+router.get('/', (req: Request, res: Response) => {
   try {
-    const patients = getAllPatients();
-    res.json(patients);
-  } catch (error: any) {
+    res.json(getAllPatients());
+  } catch (error: unknown) {
     console.error('Get all patients error:', error);
     res.status(500).json({ error: 'Failed to get patients' });
   }
 });
 
 // Get single patient
-router.get('/:patientId', requireUser, (req: Request, res: Response) => {
+router.get('/:patientId', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -47,40 +41,38 @@ router.get('/:patientId', requireUser, (req: Request, res: Response) => {
       return;
     }
     res.json(patient);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get patient error:', error);
     res.status(500).json({ error: 'Failed to get patient' });
   }
 });
 
 // Search patients
-router.get('/search/:searchTerm', requireUser, (req: Request, res: Response) => {
+router.get('/search/:searchTerm', (req: Request, res: Response) => {
   try {
     const searchTerm = req.params.searchTerm.toLowerCase();
-    const patients = getAllPatients();
-    const results = patients.filter(p => 
-      p.name.toLowerCase().includes(searchTerm) ||
-      p.patientId.toLowerCase().includes(searchTerm)
+    const results = getAllPatients().filter(
+      (p) =>
+        p.name.toLowerCase().includes(searchTerm) ||
+        p.patientId.toLowerCase().includes(searchTerm)
     );
     res.json(results);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Search patients error:', error);
     res.status(500).json({ error: 'Failed to search patients' });
   }
 });
 
 // Add new patient
-router.post('/', requireAdmin, (req: Request, res: Response) => {
+router.post('/', (req: Request, res: Response) => {
   try {
     const newPatient: NewPatient = req.body;
 
-    // Validate required fields
     if (!newPatient.name || !newPatient.patientId || !newPatient.sex || newPatient.age === undefined) {
       res.status(400).json({ error: 'Name, Patient ID, Age, and Sex are required' });
       return;
     }
 
-    // Check for duplicate patient ID
     if (patientExists(newPatient.patientId)) {
       res.status(409).json({ error: 'Patient ID already exists. Please use a unique patient ID.' });
       return;
@@ -98,58 +90,44 @@ router.post('/', requireAdmin, (req: Request, res: Response) => {
         bloodPressure: '',
         temperature: 0,
         respiratoryRate: 0,
-        oxygenSaturation: 0
+        oxygenSaturation: 0,
       },
       medicalRecords: [],
       treatments: [],
       outcomes: [],
       chatHistory: [],
-      assignedDoctor: req.user!.userId,
       reasonForVisit: null,
-      patientReport: null
+      patientReport: null,
     };
 
     dbAddPatient(patient);
-    logAudit({
-      userId: req.user!.userId,
-      action: 'patient.create',
-      patientId: patient.patientId,
-      details: `name=${patient.name}`,
-    });
     res.status(201).json({ message: 'Patient added successfully', patientId: patient.patientId });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Add patient error:', error);
     res.status(500).json({ error: 'Failed to add patient' });
   }
 });
 
 // Update patient
-router.put('/:patientId', requireAdmin, (req: Request, res: Response) => {
+router.put('/:patientId', (req: Request, res: Response) => {
   try {
     const { patientId } = req.params;
     const updatedPatient: Patient = req.body;
 
-    // Validate required fields
     if (!updatedPatient.name || !updatedPatient.patientId || !updatedPatient.sex || updatedPatient.age === undefined) {
       res.status(400).json({ error: 'Name, Patient ID, Age, and Sex are required' });
       return;
     }
 
-    // Check for duplicate patient ID (excluding current patient)
     if (updatedPatient.patientId !== patientId && patientExists(updatedPatient.patientId)) {
       res.status(409).json({ error: 'Patient ID already exists. Please use a unique patient ID.' });
       return;
     }
 
     dbUpdatePatient(patientId, updatedPatient);
-    logAudit({
-      userId: req.user!.userId,
-      action: 'patient.update',
-      patientId: updatedPatient.patientId,
-    });
     res.json({ message: 'Patient updated successfully', patientId: updatedPatient.patientId });
-  } catch (error: any) {
-    if (error.message === 'Patient not found') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Patient not found') {
       res.status(404).json({ error: 'Patient not found' });
       return;
     }
@@ -159,17 +137,12 @@ router.put('/:patientId', requireAdmin, (req: Request, res: Response) => {
 });
 
 // Delete patient
-router.delete('/:patientId', requireAdmin, (req: Request, res: Response) => {
+router.delete('/:patientId', (req: Request, res: Response) => {
   try {
     dbDeletePatient(req.params.patientId);
-    logAudit({
-      userId: req.user!.userId,
-      action: 'patient.delete',
-      patientId: req.params.patientId,
-    });
     res.json({ message: 'Patient deleted successfully' });
-  } catch (error: any) {
-    if (error.message === 'Patient not found') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Patient not found') {
       res.status(404).json({ error: 'Patient not found' });
       return;
     }
@@ -179,7 +152,7 @@ router.delete('/:patientId', requireAdmin, (req: Request, res: Response) => {
 });
 
 // Update vitals
-router.put('/:patientId/vitals', requireUser, (req: Request, res: Response) => {
+router.put('/:patientId/vitals', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -190,16 +163,16 @@ router.put('/:patientId/vitals', requireUser, (req: Request, res: Response) => {
     const vitals: Vitals = req.body;
     patient.currentStatus = vitals;
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.json({ message: 'Vitals updated successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update vitals error:', error);
     res.status(500).json({ error: 'Failed to update vitals' });
   }
 });
 
 // Medical Records
-router.post('/:patientId/medical-records', requireUser, (req: Request, res: Response) => {
+router.post('/:patientId/medical-records', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -210,15 +183,15 @@ router.post('/:patientId/medical-records', requireUser, (req: Request, res: Resp
     const record: MedicalRecord = req.body;
     patient.medicalRecords.push(record);
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.status(201).json({ message: 'Medical record added successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Add medical record error:', error);
     res.status(500).json({ error: 'Failed to add medical record' });
   }
 });
 
-router.put('/:patientId/medical-records/:recordId', requireUser, (req: Request, res: Response) => {
+router.put('/:patientId/medical-records/:recordId', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -227,8 +200,8 @@ router.put('/:patientId/medical-records/:recordId', requireUser, (req: Request, 
     }
 
     const updatedRecord: MedicalRecord = req.body;
-    const index = patient.medicalRecords.findIndex(r => r.recordId === req.params.recordId);
-    
+    const index = patient.medicalRecords.findIndex((r) => r.recordId === req.params.recordId);
+
     if (index === -1) {
       res.status(404).json({ error: 'Medical record not found' });
       return;
@@ -236,15 +209,15 @@ router.put('/:patientId/medical-records/:recordId', requireUser, (req: Request, 
 
     patient.medicalRecords[index] = updatedRecord;
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.json({ message: 'Medical record updated successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update medical record error:', error);
     res.status(500).json({ error: 'Failed to update medical record' });
   }
 });
 
-router.delete('/:patientId/medical-records/:recordId', requireUser, (req: Request, res: Response) => {
+router.delete('/:patientId/medical-records/:recordId', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -252,18 +225,18 @@ router.delete('/:patientId/medical-records/:recordId', requireUser, (req: Reques
       return;
     }
 
-    patient.medicalRecords = patient.medicalRecords.filter(r => r.recordId !== req.params.recordId);
+    patient.medicalRecords = patient.medicalRecords.filter((r) => r.recordId !== req.params.recordId);
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.json({ message: 'Medical record deleted successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Delete medical record error:', error);
     res.status(500).json({ error: 'Failed to delete medical record' });
   }
 });
 
 // Treatments
-router.post('/:patientId/treatments', requireUser, (req: Request, res: Response) => {
+router.post('/:patientId/treatments', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -274,15 +247,15 @@ router.post('/:patientId/treatments', requireUser, (req: Request, res: Response)
     const treatment: Treatment = req.body;
     patient.treatments.push(treatment);
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.status(201).json({ message: 'Treatment added successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Add treatment error:', error);
     res.status(500).json({ error: 'Failed to add treatment' });
   }
 });
 
-router.put('/:patientId/treatments/:treatmentId', requireUser, (req: Request, res: Response) => {
+router.put('/:patientId/treatments/:treatmentId', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -291,8 +264,8 @@ router.put('/:patientId/treatments/:treatmentId', requireUser, (req: Request, re
     }
 
     const updatedTreatment: Treatment = req.body;
-    const index = patient.treatments.findIndex(t => t.treatmentId === req.params.treatmentId);
-    
+    const index = patient.treatments.findIndex((t) => t.treatmentId === req.params.treatmentId);
+
     if (index === -1) {
       res.status(404).json({ error: 'Treatment not found' });
       return;
@@ -300,15 +273,15 @@ router.put('/:patientId/treatments/:treatmentId', requireUser, (req: Request, re
 
     patient.treatments[index] = updatedTreatment;
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.json({ message: 'Treatment updated successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update treatment error:', error);
     res.status(500).json({ error: 'Failed to update treatment' });
   }
 });
 
-router.delete('/:patientId/treatments/:treatmentId', requireUser, (req: Request, res: Response) => {
+router.delete('/:patientId/treatments/:treatmentId', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -317,20 +290,19 @@ router.delete('/:patientId/treatments/:treatmentId', requireUser, (req: Request,
     }
 
     const treatmentId = req.params.treatmentId;
-    patient.treatments = patient.treatments.filter(t => t.treatmentId !== treatmentId);
-    // Also delete associated outcomes
-    patient.outcomes = patient.outcomes.filter(o => o.treatmentId !== treatmentId);
+    patient.treatments = patient.treatments.filter((t) => t.treatmentId !== treatmentId);
+    patient.outcomes = patient.outcomes.filter((o) => o.treatmentId !== treatmentId);
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.json({ message: 'Treatment and associated outcomes deleted successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Delete treatment error:', error);
     res.status(500).json({ error: 'Failed to delete treatment' });
   }
 });
 
 // Outcomes
-router.post('/:patientId/outcomes', requireUser, (req: Request, res: Response) => {
+router.post('/:patientId/outcomes', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -341,15 +313,15 @@ router.post('/:patientId/outcomes', requireUser, (req: Request, res: Response) =
     const outcome: Outcome = req.body;
     patient.outcomes.push(outcome);
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.status(201).json({ message: 'Outcome logged successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Log outcome error:', error);
     res.status(500).json({ error: 'Failed to log outcome' });
   }
 });
 
-router.put('/:patientId/outcomes/:outcomeId', requireUser, (req: Request, res: Response) => {
+router.put('/:patientId/outcomes/:outcomeId', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -358,8 +330,8 @@ router.put('/:patientId/outcomes/:outcomeId', requireUser, (req: Request, res: R
     }
 
     const updatedOutcome: Outcome = req.body;
-    const index = patient.outcomes.findIndex(o => o.outcomeId === req.params.outcomeId);
-    
+    const index = patient.outcomes.findIndex((o) => o.outcomeId === req.params.outcomeId);
+
     if (index === -1) {
       res.status(404).json({ error: 'Outcome not found' });
       return;
@@ -367,15 +339,15 @@ router.put('/:patientId/outcomes/:outcomeId', requireUser, (req: Request, res: R
 
     patient.outcomes[index] = updatedOutcome;
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.json({ message: 'Outcome updated successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update outcome error:', error);
     res.status(500).json({ error: 'Failed to update outcome' });
   }
 });
 
-router.delete('/:patientId/outcomes/:outcomeId', requireUser, (req: Request, res: Response) => {
+router.delete('/:patientId/outcomes/:outcomeId', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -383,18 +355,18 @@ router.delete('/:patientId/outcomes/:outcomeId', requireUser, (req: Request, res
       return;
     }
 
-    patient.outcomes = patient.outcomes.filter(o => o.outcomeId !== req.params.outcomeId);
+    patient.outcomes = patient.outcomes.filter((o) => o.outcomeId !== req.params.outcomeId);
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.json({ message: 'Outcome deleted successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Delete outcome error:', error);
     res.status(500).json({ error: 'Failed to delete outcome' });
   }
 });
 
 // Summary
-router.put('/:patientId/summary', requireUser, (req: Request, res: Response) => {
+router.put('/:patientId/summary', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -406,15 +378,15 @@ router.put('/:patientId/summary', requireUser, (req: Request, res: Response) => 
     patient.reasonForVisit = reasonForVisit;
     patient.patientReport = patientReport;
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.json({ message: 'Summary updated successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update summary error:', error);
     res.status(500).json({ error: 'Failed to update summary' });
   }
 });
 
-router.get('/:patientId/summary', requireUser, (req: Request, res: Response) => {
+router.get('/:patientId/summary', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -424,16 +396,16 @@ router.get('/:patientId/summary', requireUser, (req: Request, res: Response) => 
 
     res.json({
       reasonForVisit: patient.reasonForVisit,
-      patientReport: patient.patientReport
+      patientReport: patient.patientReport,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get summary error:', error);
     res.status(500).json({ error: 'Failed to get summary' });
   }
 });
 
 // Chat
-router.post('/:patientId/chat', requireUser, (req: Request, res: Response) => {
+router.post('/:patientId/chat', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -444,15 +416,15 @@ router.post('/:patientId/chat', requireUser, (req: Request, res: Response) => {
     const message: ChatMessage = req.body;
     patient.chatHistory.push(message);
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.status(201).json({ message: 'Chat message added successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Add chat message error:', error);
     res.status(500).json({ error: 'Failed to add chat message' });
   }
 });
 
-router.get('/:patientId/chat', requireUser, (req: Request, res: Response) => {
+router.get('/:patientId/chat', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -461,13 +433,13 @@ router.get('/:patientId/chat', requireUser, (req: Request, res: Response) => {
     }
 
     res.json(patient.chatHistory);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get chat history error:', error);
     res.status(500).json({ error: 'Failed to get chat history' });
   }
 });
 
-router.delete('/:patientId/chat', requireUser, (req: Request, res: Response) => {
+router.delete('/:patientId/chat', (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -477,16 +449,16 @@ router.delete('/:patientId/chat', requireUser, (req: Request, res: Response) => 
 
     patient.chatHistory = [];
     dbUpdatePatient(req.params.patientId, patient);
-    
+
     res.json({ message: 'Chat history cleared successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Clear chat history error:', error);
     res.status(500).json({ error: 'Failed to clear chat history' });
   }
 });
 
-// AI Analysis
-router.post('/:patientId/analyze-treatment', requireUser, async (req: Request, res: Response) => {
+// AI Analysis — API key is supplied per-request via the X-OpenAI-Key header.
+router.post('/:patientId/analyze-treatment', async (req: Request, res: Response) => {
   try {
     const patient = getPatient(req.params.patientId);
     if (!patient) {
@@ -495,20 +467,27 @@ router.post('/:patientId/analyze-treatment', requireUser, async (req: Request, r
     }
 
     const { treatmentDescription }: AnalyzeTreatmentRequest = req.body;
-    
     if (!treatmentDescription) {
       res.status(400).json({ error: 'Treatment description is required' });
       return;
     }
 
-    const analysis = await analyzeTreatmentWithOpenAI(patient, treatmentDescription);
+    const headerKey = req.header('x-openai-key');
+    const apiKey = typeof headerKey === 'string' ? headerKey.trim() : '';
+    if (!apiKey) {
+      res
+        .status(400)
+        .json({ error: 'OpenAI API key is not configured. Please set your key in Admin Settings.' });
+      return;
+    }
+
+    const analysis = await analyzeTreatmentWithOpenAI(apiKey, patient, treatmentDescription);
     res.json({ analysis });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Analyze treatment error:', error);
-    res.status(500).json({ error: error.message || 'Failed to analyze treatment' });
+    const message = error instanceof Error ? error.message : 'Failed to analyze treatment';
+    res.status(500).json({ error: message });
   }
 });
 
 export default router;
-
-

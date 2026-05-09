@@ -1,18 +1,30 @@
 import axios, { AxiosInstance } from 'axios';
-import type { 
-  LoginRequest, 
-  RegisterRequest, 
-  AuthResponse, 
-  UserProfile, 
-  Patient, 
+import type {
+  Patient,
   NewPatient,
   Vitals,
   MedicalRecord,
   Treatment,
   Outcome,
   ChatMessage,
-  PatientId
+  PatientId,
 } from '../types';
+
+export const OPENAI_KEY_STORAGE = 'openai_api_key';
+
+export function getStoredOpenAiKey(): string {
+  if (typeof window === 'undefined') return '';
+  return window.sessionStorage.getItem(OPENAI_KEY_STORAGE) ?? '';
+}
+
+export function setStoredOpenAiKey(key: string): void {
+  if (typeof window === 'undefined') return;
+  if (key) {
+    window.sessionStorage.setItem(OPENAI_KEY_STORAGE, key);
+  } else {
+    window.sessionStorage.removeItem(OPENAI_KEY_STORAGE);
+  }
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -26,53 +38,6 @@ class ApiClient {
         'Content-Type': 'application/json',
       },
     });
-
-    // Add token to requests
-    this.client.interceptors.request.use((config) => {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
-
-    // Handle 401 errors
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user_data');
-          window.location.href = '/';
-        }
-        return Promise.reject(error);
-      }
-    );
-  }
-
-  // Auth endpoints
-  async register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await this.client.post<AuthResponse>('/api/auth/register', data);
-    return response.data;
-  }
-
-  async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await this.client.post<AuthResponse>('/api/auth/login', data);
-    return response.data;
-  }
-
-  async getProfile(): Promise<UserProfile | null> {
-    const response = await this.client.get<UserProfile | null>('/api/auth/profile');
-    return response.data;
-  }
-
-  async updateProfile(profile: UserProfile): Promise<void> {
-    await this.client.put('/api/auth/profile', profile);
-  }
-
-  async isAdmin(): Promise<boolean> {
-    const response = await this.client.get<boolean>('/api/auth/is-admin');
-    return response.data;
   }
 
   // Patient endpoints
@@ -85,8 +50,8 @@ class ApiClient {
     try {
       const response = await this.client.get<Patient>(`/api/patients/${patientId}`);
       return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 404) return null;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
   }
@@ -175,27 +140,16 @@ class ApiClient {
     await this.client.delete(`/api/patients/${patientId}/chat`);
   }
 
-  // AI Analysis
+  // AI Analysis — passes the user's per-session OpenAI key via header.
   async analyzeTreatment(patientId: PatientId, treatmentDescription: string): Promise<string> {
-    const response = await this.client.post(`/api/patients/${patientId}/analyze-treatment`, {
-      treatmentDescription,
-    });
-    return response.data.analysis;
-  }
-
-  // Admin
-  async getOpenAiApiKey(): Promise<{ openAiApiKey: string; hasKey: boolean }> {
-    const response = await this.client.get<{ openAiApiKey: string; hasKey: boolean }>(
-      '/api/admin/openai-key'
+    const apiKey = getStoredOpenAiKey();
+    const response = await this.client.post(
+      `/api/patients/${patientId}/analyze-treatment`,
+      { treatmentDescription },
+      { headers: apiKey ? { 'X-OpenAI-Key': apiKey } : {} }
     );
-    return response.data;
-  }
-
-  async updateOpenAiApiKey(apiKey: string): Promise<void> {
-    await this.client.put('/api/admin/openai-key', { openAiApiKey: apiKey });
+    return response.data.analysis;
   }
 }
 
 export const apiClient = new ApiClient();
-
-

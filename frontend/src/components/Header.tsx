@@ -1,31 +1,13 @@
-import { useAuth } from '../hooks/useAuth';
-import { useIsCallerAdmin } from '../hooks/useQueries';
-import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Activity, LogOut, Moon, Sun, Settings } from 'lucide-react';
+import { Activity, Moon, Sun, Settings } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface HeaderProps {
   onAdminSettingsClick?: () => void;
 }
 
 export default function Header({ onAdminSettingsClick }: HeaderProps) {
-  const { logout, userProfile } = useAuth();
-  const { data: isAdmin = false } = useIsCallerAdmin();
-  const queryClient = useQueryClient();
   const { theme, setTheme } = useTheme();
-
-  const handleLogout = () => {
-    logout();
-    queryClient.clear();
-  };
 
   return (
     <header className="border-b bg-card">
@@ -38,7 +20,7 @@ export default function Header({ onAdminSettingsClick }: HeaderProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
@@ -49,35 +31,10 @@ export default function Header({ onAdminSettingsClick }: HeaderProps) {
             <span className="sr-only">Toggle theme</span>
           </Button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  {userProfile?.name.charAt(0).toUpperCase() || 'D'}
-                </div>
-                <span className="hidden sm:inline">{userProfile?.name || 'Doctor'}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {isAdmin && (
-                <>
-                  <DropdownMenuItem disabled className="text-xs text-muted-foreground">
-                    Admin Account
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={onAdminSettingsClick}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Admin Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                </>
-              )}
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button variant="outline" className="gap-2" onClick={onAdminSettingsClick}>
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">Admin Settings</span>
+          </Button>
         </div>
       </div>
     </header>
