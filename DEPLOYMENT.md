@@ -85,7 +85,7 @@ sudo apt install -y certbot python3-certbot-nginx
 
 ```bash
 cd /var/www/clinical-support
-cd backend-new
+cd backend
 
 # Install dependencies
 npm ci --production
@@ -173,18 +173,18 @@ sudo certbot --nginx -d your-domain.com
 
 #### Backend
 
-Create `Procfile` in `backend-new/`:
+Create `Procfile` in `backend/`:
 ```
 web: node dist/server.js
 ```
 
 Deploy:
 ```bash
-cd backend-new
+cd backend
 heroku create your-app-backend
 heroku config:set JWT_SECRET=your-secret
 heroku config:set NODE_ENV=production
-git subtree push --prefix backend-new heroku main
+git subtree push --prefix backend heroku main
 ```
 
 #### Frontend
@@ -214,7 +214,7 @@ Configure environment variable:
 
 1. Create new app from GitHub
 2. Configure two services:
-   - Backend: Node.js service from `backend-new/`
+   - Backend: Node.js service from `backend/`
    - Frontend: Static site from `frontend/`
 3. Set environment variables
 4. Deploy
@@ -271,7 +271,7 @@ sudo apt install postgresql postgresql-contrib
 sudo -u postgres createdb clinical_support
 ```
 
-3. Update `backend-new/src/services/database.ts` to use Prisma or Sequelize
+3. Update `backend/src/services/database.ts` to use Prisma or Sequelize
 
 4. Migrate existing JSON data to database
 
@@ -314,7 +314,7 @@ docker-compose logs -f
 git pull
 
 # Backend
-cd backend-new
+cd backend
 npm install
 npm run build
 pm2 restart clinical-backend

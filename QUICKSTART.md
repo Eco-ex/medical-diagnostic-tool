@@ -32,12 +32,12 @@ This will:
 
 #### Backend Setup
 ```bash
-cd backend-new
+cd backend
 npm install
 cp .env.example .env
 ```
 
-Edit `backend-new/.env` and set a secure JWT_SECRET:
+Edit `backend/.env` and set a secure JWT_SECRET:
 ```env
 JWT_SECRET=your-very-long-random-secret-key-here-min-32-chars
 ```
@@ -131,7 +131,7 @@ npm cache clean --force
 
 Then reinstall:
 ```bash
-cd backend-new
+cd backend
 rm -rf node_modules package-lock.json
 npm install
 
@@ -167,7 +167,7 @@ docker-compose down
 ## 📚 Next Steps
 
 - Read the full [README.md](README.md) for detailed documentation
-- Explore the API endpoints in `backend-new/README.md`
+- Explore the API endpoints in `backend/README.md`
 - Add your first patient and try the AI analysis
 - Customize the application to your needs
 

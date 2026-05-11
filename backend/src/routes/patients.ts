@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import {
   Patient,
   NewPatient,
@@ -21,6 +22,18 @@ import {
 import { analyzeTreatmentWithOpenAI } from '../services/openai';
 
 const router = express.Router();
+
+// The backend acts as a proxy to OpenAI under a caller-supplied key. Without a
+// limit, anyone reachable on the network could use this endpoint to anonymize
+// their own OpenAI traffic through our IP. Per-IP cap is intentionally loose
+// enough not to interfere with normal use.
+const analyzeTreatmentLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many analysis requests. Please wait a minute and try again.' },
+});
 
 // Get all patients
 router.get('/', (req: Request, res: Response) => {
@@ -458,36 +471,42 @@ router.delete('/:patientId/chat', (req: Request, res: Response) => {
 });
 
 // AI Analysis — API key is supplied per-request via the X-OpenAI-Key header.
-router.post('/:patientId/analyze-treatment', async (req: Request, res: Response) => {
-  try {
-    const patient = getPatient(req.params.patientId);
-    if (!patient) {
-      res.status(404).json({ error: 'Patient not found' });
-      return;
-    }
+// The extractOpenAiKey middleware (see server.ts) validates the key's shape and
+// moves it from req.headers onto req.openAiKey so it cannot be picked up by
+// request loggers.
+router.post(
+  '/:patientId/analyze-treatment',
+  analyzeTreatmentLimiter,
+  async (req: Request, res: Response) => {
+    try {
+      const patient = getPatient(req.params.patientId);
+      if (!patient) {
+        res.status(404).json({ error: 'Patient not found' });
+        return;
+      }
 
-    const { treatmentDescription }: AnalyzeTreatmentRequest = req.body;
-    if (!treatmentDescription) {
-      res.status(400).json({ error: 'Treatment description is required' });
-      return;
-    }
+      const { treatmentDescription }: AnalyzeTreatmentRequest = req.body;
+      if (!treatmentDescription) {
+        res.status(400).json({ error: 'Treatment description is required' });
+        return;
+      }
 
-    const headerKey = req.header('x-openai-key');
-    const apiKey = typeof headerKey === 'string' ? headerKey.trim() : '';
-    if (!apiKey) {
-      res
-        .status(400)
-        .json({ error: 'OpenAI API key is not configured. Please set your key in Admin Settings.' });
-      return;
-    }
+      const apiKey = req.openAiKey;
+      if (!apiKey) {
+        res.status(400).json({
+          error: 'OpenAI API key is missing or malformed. Please set a valid key in Admin Settings.',
+        });
+        return;
+      }
 
-    const analysis = await analyzeTreatmentWithOpenAI(apiKey, patient, treatmentDescription);
-    res.json({ analysis });
-  } catch (error: unknown) {
-    console.error('Analyze treatment error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to analyze treatment';
-    res.status(500).json({ error: message });
+      const analysis = await analyzeTreatmentWithOpenAI(apiKey, patient, treatmentDescription);
+      res.json({ analysis });
+    } catch (error: unknown) {
+      console.error('Analyze treatment error:', error);
+      const message = error instanceof Error ? error.message : 'Failed to analyze treatment';
+      res.status(500).json({ error: message });
+    }
   }
-});
+);
 
 export default router;

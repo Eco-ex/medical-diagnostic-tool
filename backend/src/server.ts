@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import patientRoutes from './routes/patients';
+import { extractOpenAiKey } from './middleware/openaiKey';
 
 dotenv.config();
 
@@ -15,11 +16,18 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
     credentials: true,
-    exposedHeaders: ['x-openai-key'],
     allowedHeaders: ['Content-Type', 'X-OpenAI-Key'],
   })
 );
 app.use(express.json());
+
+// Strip X-OpenAI-Key off req.headers before any logger sees it. Must run before
+// morgan and before any future request-logging middleware.
+app.use(extractOpenAiKey);
+
+// 'dev' format does not log request headers. If you ever swap this for a custom
+// format, do NOT include `:req[header]` tokens — req.headers no longer carries
+// x-openai-key after extractOpenAiKey, but other secrets may leak the same way.
 app.use(morgan('dev'));
 
 app.get('/health', (req: Request, res: Response) => {

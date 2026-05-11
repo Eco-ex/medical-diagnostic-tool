@@ -6,10 +6,10 @@ echo "🏥 Starting Clinical Decision Support Tool..."
 echo ""
 
 # Check if .env files exist
-if [ ! -f "backend-new/.env" ]; then
+if [ ! -f "backend/.env" ]; then
     echo "⚠️  Backend .env not found. Creating from template..."
-    cp backend-new/.env.example backend-new/.env
-    echo "✅ Created backend-new/.env - Please edit and set JWT_SECRET"
+    cp backend/.env.example backend/.env
+    echo "✅ Created backend/.env - Please edit and set JWT_SECRET"
 fi
 
 if [ ! -f "frontend/.env" ]; then
@@ -24,7 +24,7 @@ echo ""
 
 # Install backend dependencies
 echo "Installing backend dependencies..."
-cd backend-new
+cd backend
 npm install
 cd ..
 
@@ -40,7 +40,7 @@ echo ""
 
 # Start backend in background
 echo "Starting backend on http://localhost:3001..."
-cd backend-new
+cd backend
 npm run dev &
 BACKEND_PID=$!
 cd ..

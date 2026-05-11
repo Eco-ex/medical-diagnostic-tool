@@ -34,12 +34,12 @@ A web-based tool that helps healthcare professionals analyze treatment options w
 Backend:
 
 ```bash
-cd backend-new
+cd backend
 npm install
 npm run dev
 ```
 
-The backend runs on http://localhost:3001. The defaults in [backend-new/src/server.ts](backend-new/src/server.ts) are sufficient for local development; create a `backend-new/.env` only if you want to override them (see Configuration below).
+The backend runs on http://localhost:3001. The defaults in [backend/src/server.ts](backend/src/server.ts) are sufficient for local development; create a `backend/.env` only if you want to override them (see Configuration below).
 
 Frontend (in a new terminal):
 
@@ -65,7 +65,7 @@ Open http://localhost:5173.
 
 All `.env` files are optional. The backend and frontend both run with sensible defaults; create one only if you need to override.
 
-### Backend (`backend-new/.env`)
+### Backend (`backend/.env`)
 
 ```env
 PORT=3001
@@ -96,22 +96,24 @@ Generate a key at [platform.openai.com/api-keys](https://platform.openai.com/api
 
 ## 🗄️ Data Persistence
 
-**Patient data is held in memory only.** It is wiped on every server restart. This is intentional for the current scope; for persistent storage you would plug a database into [backend-new/src/services/database.ts](backend-new/src/services/database.ts) — that file is the single source of truth for the patient store.
+**Patient data is held in memory only.** It is wiped on every server restart. This is intentional for the current scope; for persistent storage you would plug a database into [backend/src/services/database.ts](backend/src/services/database.ts) — that file is the single source of truth for the patient store.
 
-The repo contains a `backend-new/data/` directory with `patients.json`, `users.json`, `settings.json`, and `audit-logs.json`. These are leftovers from an earlier file-backed, JWT-authenticated version of the backend; the current code does not read or write them and they can be ignored.
+The repo contains a `backend/data/` directory with `patients.json`, `users.json`, `settings.json`, and `audit-logs.json`. These are leftovers from an earlier file-backed, JWT-authenticated version of the backend; the current code does not read or write them and they can be ignored.
 
 ## 🔒 Security Notes
 
 - CORS configured per environment via `CORS_ORIGIN`.
-- Helmet.js security headers.
+- Helmet.js security headers on the backend; strict CSP and `X-Frame-Options`/`Referrer-Policy`/`Permissions-Policy` headers on the Nginx-served frontend.
 - Input validation on patient mutations.
 - API keys are never stored server-side; the client provides them per-request and the server only uses them to forward to OpenAI.
+- `X-OpenAI-Key` is shape-validated and stripped from `req.headers` by middleware before any logger sees it, so request logs cannot leak the key.
+- `/analyze-treatment` is rate-limited per IP (10 req/min) to prevent the backend being used as an open proxy to OpenAI.
 
 ## 📁 Project Structure
 
 ```
 medical-diagnostic-tool/
-├── backend-new/              # Express backend
+├── backend/              # Express backend
 │   ├── src/
 │   │   ├── server.ts         # App entry
 │   │   ├── routes/           # /api/patients/*
@@ -170,7 +172,7 @@ Both projects use [Vitest](https://vitest.dev/).
 
 ```bash
 # Backend
-cd backend-new
+cd backend
 npm test           # one-shot
 npm run test:watch # watch mode
 
@@ -183,7 +185,7 @@ Lint and format:
 
 ```bash
 # Backend
-cd backend-new
+cd backend
 npm run lint
 npm run format
 
@@ -208,7 +210,7 @@ Note: [docker-compose.yml](docker-compose.yml) still passes `JWT_SECRET` and `DA
 
 ```bash
 # Backend
-cd backend-new
+cd backend
 npm install
 npm run build
 npm start
@@ -229,7 +231,7 @@ npm run build
 ### Frontend can&apos;t connect to backend
 - Verify the backend is running on port 3001.
 - Check `VITE_API_URL` in `frontend/.env`.
-- Check `CORS_ORIGIN` in `backend-new/.env`.
+- Check `CORS_ORIGIN` in `backend/.env`.
 
 ### OpenAI integration not working
 - Open Admin Settings and confirm a key is saved for this tab.

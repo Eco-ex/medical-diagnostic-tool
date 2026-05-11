@@ -3,10 +3,10 @@ echo 🏥 Starting Clinical Decision Support Tool...
 echo.
 
 REM Check if .env files exist
-if not exist "backend-new\.env" (
+if not exist "backend\.env" (
     echo ⚠️  Backend .env not found. Creating from template...
-    copy backend-new\.env.example backend-new\.env
-    echo ✅ Created backend-new\.env - Please edit and set JWT_SECRET
+    copy backend\.env.example backend\.env
+    echo ✅ Created backend\.env - Please edit and set JWT_SECRET
 )
 
 if not exist "frontend\.env" (
@@ -21,7 +21,7 @@ echo.
 
 REM Install backend dependencies
 echo Installing backend dependencies...
-cd backend-new
+cd backend
 call npm install
 cd ..
 
@@ -37,7 +37,7 @@ echo.
 
 REM Start backend in new window
 echo Starting backend on http://localhost:3001...
-start "Clinical Support Backend" cmd /k "cd backend-new && npm run dev"
+start "Clinical Support Backend" cmd /k "cd backend && npm run dev"
 
 REM Wait a moment for backend to start
 timeout /t 3 /nobreak >nul
