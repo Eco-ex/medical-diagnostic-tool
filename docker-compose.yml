@@ -1,35 +1,14 @@
-version: '3.8'
-
+# Single-service Next.js app (UI + API in one process).
+#
+# Patient data is held in the container's memory and resets when the container
+# restarts. Wire up Supabase Postgres in lib/server/database.ts for persistence.
 services:
-  backend:
+  app:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     ports:
-      - "3001:3001"
+      - "3000:3000"
     environment:
       - NODE_ENV=production
-      - PORT=3001
-      - JWT_SECRET=${JWT_SECRET}
-      - DATA_DIR=/app/data
-      - CORS_ORIGIN=http://localhost:5173
-    volumes:
-      - ./data:/app/data
     restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "5173:80"
-    depends_on:
-      - backend
-    environment:
-      - VITE_API_URL=http://localhost:3001
-    restart: unless-stopped
-
-volumes:
-  data:
-
-
