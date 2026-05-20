@@ -90,9 +90,13 @@ Generate a key at [platform.openai.com/api-keys](https://platform.openai.com/api
 ```
 medical-diagnostic-tool/
 ├── app/
-│   ├── layout.tsx           # Root layout + metadata
+│   ├── layout.tsx           # Root layout: app shell + global Header
 │   ├── providers.tsx        # Client providers (Query, theme, toaster)
-│   ├── page.tsx             # Renders <MainLayout/>
+│   ├── (dashboard)/         # Route group: patient sidebar layout
+│   │   ├── layout.tsx       # Adds the PatientList sidebar
+│   │   ├── page.tsx         # "/" — empty state
+│   │   └── patients/[patientId]/page.tsx  # "/patients/:id" — dashboard
+│   ├── admin/page.tsx       # "/admin" — settings (no sidebar)
 │   ├── globals.css
 │   └── api/                 # Route Handlers (the backend)
 │       ├── health/

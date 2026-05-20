@@ -1,24 +1,24 @@
-import { Button } from '@/components/ui/button';
+'use client';
+
+import Link from 'next/link';
 import { Activity, Moon, Sun, Settings } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-interface HeaderProps {
-  onAdminSettingsClick?: () => void;
-}
-
-export default function Header({ onAdminSettingsClick }: HeaderProps) {
+export default function Header() {
   const { theme, setTheme } = useTheme();
 
   return (
     <header className="border-b bg-card">
       <div className="flex h-16 items-center justify-between px-6">
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3">
           <Activity className="h-8 w-8 text-primary" />
           <div>
             <h1 className="text-xl font-bold">MedAssist</h1>
             <p className="text-xs text-muted-foreground">Clinical Decision Support</p>
           </div>
-        </div>
+        </Link>
 
         <div className="flex items-center gap-2">
           <Button
@@ -31,10 +31,13 @@ export default function Header({ onAdminSettingsClick }: HeaderProps) {
             <span className="sr-only">Toggle theme</span>
           </Button>
 
-          <Button variant="outline" className="gap-2" onClick={onAdminSettingsClick}>
+          <Link
+            href="/admin"
+            className={cn(buttonVariants({ variant: 'outline' }), 'gap-2')}
+          >
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Admin Settings</span>
-          </Button>
+          </Link>
         </div>
       </div>
     </header>

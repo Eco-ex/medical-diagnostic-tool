@@ -1,4 +1,7 @@
+'use client';
+
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGetPatient, useDeletePatient } from '../hooks/useQueries';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -30,10 +33,10 @@ import type { PatientId } from '../types';
 
 interface PatientDashboardProps {
   patientId: PatientId;
-  onPatientDeleted?: () => void;
 }
 
-export default function PatientDashboard({ patientId, onPatientDeleted }: PatientDashboardProps) {
+export default function PatientDashboard({ patientId }: PatientDashboardProps) {
+  const router = useRouter();
   const { data: patient, isLoading } = useGetPatient(patientId);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -46,11 +49,9 @@ export default function PatientDashboard({ patientId, onPatientDeleted }: Patien
       await deletePatientMutation.mutateAsync(patient.patientId);
       toast.success('Patient deleted successfully');
       setShowDeleteDialog(false);
-      
-      // Notify parent to clear selection
-      if (onPatientDeleted) {
-        onPatientDeleted();
-      }
+
+      // The patient is gone — leave the now-dead route for the home view.
+      router.push('/');
     } catch (error: any) {
       const errorMessage = error?.message || String(error);
       
@@ -168,6 +169,13 @@ export default function PatientDashboard({ patientId, onPatientDeleted }: Patien
         open={showEditModal}
         onOpenChange={setShowEditModal}
         patient={patient}
+        onPatientUpdated={(newPatientId) => {
+          // A renamed patient ID changes the URL — follow it so the route
+          // stays valid instead of pointing at the old, now-missing id.
+          if (newPatientId !== patient.patientId) {
+            router.push(`/patients/${encodeURIComponent(newPatientId)}`);
+          }
+        }}
       />
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

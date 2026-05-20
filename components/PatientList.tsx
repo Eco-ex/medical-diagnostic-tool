@@ -1,4 +1,8 @@
+'use client';
+
 import { useState } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,17 +26,22 @@ import { Search, User, Plus, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddPatientModal from './AddPatientModal';
 import EditPatientModal from './EditPatientModal';
-import { useDeletePatient } from '../hooks/useQueries';
+import { useGetAllPatients, useDeletePatient } from '../hooks/useQueries';
 import { toast } from 'sonner';
-import type { Patient, PatientId } from '../types';
+import type { Patient } from '../types';
 
-interface PatientListProps {
-  patients: Patient[];
-  selectedPatientId: PatientId | null;
-  onSelectPatient: (patientId: PatientId) => void;
+function patientHref(patientId: string): string {
+  return `/patients/${encodeURIComponent(patientId)}`;
 }
 
-export default function PatientList({ patients, selectedPatientId, onSelectPatient }: PatientListProps) {
+export default function PatientList() {
+  const router = useRouter();
+  // On "/patients/[patientId]" this yields the open patient; on "/" it is empty.
+  const params = useParams<{ patientId?: string }>();
+  const selectedPatientId = params?.patientId ?? null;
+
+  const { data: patients = [], isLoading } = useGetAllPatients();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [showEditPatientModal, setShowEditPatientModal] = useState(false);
@@ -47,11 +56,11 @@ export default function PatientList({ patients, selectedPatientId, onSelectPatie
   );
 
   const handlePatientAdded = (patientId: string) => {
-    onSelectPatient(patientId);
+    router.push(patientHref(patientId));
   };
 
   const handlePatientUpdated = (newPatientId: string) => {
-    onSelectPatient(newPatientId);
+    router.push(patientHref(newPatientId));
   };
 
   const handleEditClick = (patient: Patient, e: React.MouseEvent) => {
@@ -72,17 +81,17 @@ export default function PatientList({ patients, selectedPatientId, onSelectPatie
     try {
       await deletePatientMutation.mutateAsync(patientToDelete.patientId);
       toast.success('Patient deleted successfully');
-      
-      // If the deleted patient was selected, clear selection
+
+      // If the deleted patient is the one currently open, return to the home view.
       if (selectedPatientId === patientToDelete.patientId) {
-        onSelectPatient('');
+        router.push('/');
       }
-      
+
       setShowDeleteDialog(false);
       setPatientToDelete(null);
     } catch (error: any) {
       const errorMessage = error?.message || String(error);
-      
+
       if (errorMessage.includes('UNAUTHORIZED')) {
         toast.error('You do not have permission to delete patients.');
       } else if (errorMessage.includes('NOT_FOUND')) {
@@ -122,7 +131,11 @@ export default function PatientList({ patients, selectedPatientId, onSelectPatie
 
           <ScrollArea className="flex-1">
             <div className="p-2">
-              {filteredPatients.length === 0 ? (
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                </div>
+              ) : filteredPatients.length === 0 ? (
                 <div className="py-8 text-center text-sm text-muted-foreground">
                   {searchTerm ? 'No patients found' : 'No patients available'}
                 </div>
@@ -131,13 +144,13 @@ export default function PatientList({ patients, selectedPatientId, onSelectPatie
                   <div
                     key={patient.patientId}
                     className={cn(
-                      'group relative w-full rounded-lg p-3 transition-colors hover:bg-accent',
+                      'group relative w-full rounded-lg transition-colors hover:bg-accent',
                       selectedPatientId === patient.patientId && 'bg-accent'
                     )}
                   >
-                    <button
-                      onClick={() => onSelectPatient(patient.patientId)}
-                      className="flex w-full items-center gap-3 text-left"
+                    <Link
+                      href={patientHref(patient.patientId)}
+                      className="flex w-full items-center gap-3 p-3 text-left"
                     >
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <User className="h-5 w-5" />
@@ -148,8 +161,8 @@ export default function PatientList({ patients, selectedPatientId, onSelectPatie
                           ID: {patient.patientId}
                         </p>
                       </div>
-                    </button>
-                    
+                    </Link>
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
