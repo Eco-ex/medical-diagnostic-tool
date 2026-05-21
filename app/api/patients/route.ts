@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import type { NewPatient, Patient } from '@/types';
+import type { NewPatient } from '@/types';
 import { addPatient, getAllPatients, patientExists } from '@/lib/server/database';
 
 export const dynamic = 'force-dynamic';
@@ -39,31 +39,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const patient: Patient = {
+    await addPatient({
       patientId: newPatient.patientId,
       name: newPatient.name,
       age: newPatient.age,
       sex: newPatient.sex,
       occupation: newPatient.occupation,
       allergies: newPatient.allergies,
-      currentStatus: {
-        heartRate: 0,
-        bloodPressure: '',
-        temperature: 0,
-        respiratoryRate: 0,
-        oxygenSaturation: 0,
-      },
-      medicalRecords: [],
-      treatments: [],
-      outcomes: [],
-      chatHistory: [],
-      reasonForVisit: null,
-      patientReport: null,
-    };
-
-    await addPatient(patient);
+    });
     return NextResponse.json(
-      { message: 'Patient added successfully', patientId: patient.patientId },
+      { message: 'Patient added successfully', patientId: newPatient.patientId },
       { status: 201 }
     );
   } catch (error: unknown) {

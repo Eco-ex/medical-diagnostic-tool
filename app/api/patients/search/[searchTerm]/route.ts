@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllPatients } from '@/lib/server/database';
+import { searchPatients } from '@/lib/server/database';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,11 +11,7 @@ export async function GET(
 ) {
   try {
     const { searchTerm } = await params;
-    const term = searchTerm.toLowerCase();
-    const results = (await getAllPatients()).filter(
-      (p) => p.name.toLowerCase().includes(term) || p.patientId.toLowerCase().includes(term)
-    );
-    return NextResponse.json(results);
+    return NextResponse.json(await searchPatients(searchTerm));
   } catch (error: unknown) {
     console.error('Search patients error:', error);
     return NextResponse.json({ error: 'Failed to search patients' }, { status: 500 });

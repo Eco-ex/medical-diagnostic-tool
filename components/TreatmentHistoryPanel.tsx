@@ -311,7 +311,7 @@ export default function TreatmentHistoryPanel({ patient }: TreatmentHistoryPanel
                     {sortedTreatments.map((treatment) => (
                       <option key={treatment.treatmentId} value={treatment.treatmentId}>
                         {treatment.description} -{' '}
-                        {new Date(Number(treatment.date) / 1000000).toLocaleDateString()}
+                        {new Date(Number(treatment.date)).toLocaleDateString()}
                       </option>
                     ))}
                   </select>
@@ -371,7 +371,7 @@ export default function TreatmentHistoryPanel({ patient }: TreatmentHistoryPanel
                         <div className="flex-1">
                           <CardTitle className="text-base">{treatment.description}</CardTitle>
                           <CardDescription>
-                            {new Date(Number(treatment.date) / 1000000).toLocaleDateString('en-US', {
+                            {new Date(Number(treatment.date)).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric',
@@ -429,7 +429,7 @@ export default function TreatmentHistoryPanel({ patient }: TreatmentHistoryPanel
                               {treatment?.description || 'Unknown Treatment'}
                             </CardTitle>
                             <CardDescription>
-                              {new Date(Number(outcome.date) / 1000000).toLocaleDateString('en-US', {
+                              {new Date(Number(outcome.date)).toLocaleDateString('en-US', {
                                 year: 'numeric',
                                 month: 'long',
                                 day: 'numeric',

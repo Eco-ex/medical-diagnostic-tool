@@ -428,7 +428,7 @@ Please analyze this treatment considering the patient's medical history, current
                         >
                           <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
                           <p className="mt-1 text-xs opacity-70">
-                            {new Date(Number(msg.timestamp) / 1000000).toLocaleTimeString()}
+                            {new Date(Number(msg.timestamp)).toLocaleTimeString()}
                           </p>
                         </div>
                         {msg.sender === 'Doctor' && (

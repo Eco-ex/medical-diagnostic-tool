@@ -208,7 +208,7 @@ export default function MedicalRecordsPanel({ patient }: MedicalRecordsPanelProp
                     <div className="flex-1">
                       <CardTitle className="text-base">{record.description}</CardTitle>
                       <CardDescription>
-                        {new Date(Number(record.date) / 1000000).toLocaleDateString('en-US', {
+                        {new Date(Number(record.date)).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric',

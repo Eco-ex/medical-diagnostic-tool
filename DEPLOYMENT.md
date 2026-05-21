@@ -2,14 +2,20 @@
 
 The Clinical Decision Support Tool is a single Next.js app — UI and API in one process, on one port.
 
-## Important: Stateful, single-process
+## Data storage
 
-Patient data lives in the server process's memory ([lib/server/database.ts](lib/server/database.ts)). This has two consequences for deployment:
+Patient data and the AI audit log are stored in **Supabase Postgres**
+([lib/server/database.ts](lib/server/database.ts) is the persistence layer; see
+[SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md) for the schema and setup). The
+server holds no patient state in memory, which means:
 
-1. **Run exactly one long-lived process.** `next start` (or the Docker image) is fine. Per-request **serverless** platforms (Vercel functions, AWS Lambda) are **not** — each invocation gets fresh memory, so the store would reset constantly.
-2. **A restart wipes all data.** This is expected for the current scope.
+1. **Run any number of processes.** `next start`, the Docker image, multiple
+   replicas behind a load balancer, or per-request **serverless** platforms
+   (Vercel functions, AWS Lambda) all work.
+2. **Restarts are safe.** Data lives in Postgres, not process memory.
 
-To remove these constraints, back the store with **Supabase Postgres** by reimplementing [lib/server/database.ts](lib/server/database.ts). Its functions are already async, so nothing else changes.
+The server needs `SUPABASE_URL` and `SUPABASE_SECRET_KEY` set — see
+[Environment Variables](#environment-variables).
 
 ## Docker (recommended)
 
@@ -76,19 +82,20 @@ sudo certbot --nginx -d your-domain.com
 
 ## Environment Variables
 
-All are optional (see [.env.example](.env.example)):
+See [.env.example](.env.example).
 
-| Variable | Purpose |
-| --- | --- |
-| `NEXT_PUBLIC_API_URL` | Override the API base URL. Unset → same-origin `/api`. |
-| `PORT` | Port for `next start` / the Docker server. Default `3000`. |
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `SUPABASE_URL` | Yes | Supabase project URL. |
+| `SUPABASE_SECRET_KEY` | Yes | Supabase secret key (`sb_secret_...`). Server-only — never expose it to the browser. |
+| `NEXT_PUBLIC_API_URL` | No | Override the API base URL. Unset → same-origin `/api`. |
+| `PORT` | No | Port for `next start` / the Docker server. Default `3000`. |
 
 ## Production Checklist
 
-- [ ] Run as a single process (`next start` / one container) — not serverless.
+- [ ] Set `SUPABASE_URL` and `SUPABASE_SECRET_KEY`, and apply the schema migration (see [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md)).
 - [ ] Enable HTTPS/SSL (Certbot, or a managed load balancer).
 - [ ] Put a reverse proxy in front so `X-Forwarded-For` is set (needed by the rate limiter).
-- [ ] Plan for data loss on restart, or migrate the store to Supabase Postgres.
 - [ ] Review the CSP note in [next.config.mjs](next.config.mjs) before exposing publicly.
 - [ ] Set up uptime and error monitoring.
 

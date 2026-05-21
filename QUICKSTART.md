@@ -6,14 +6,34 @@
 - npm
 - A code editor (VS Code recommended)
 
-## 🚀 Getting Started (2 minutes)
+## 🚀 Getting Started
+
+Install dependencies:
 
 ```bash
 npm install
+```
+
+### Configure the database
+
+Patient data is stored in Supabase Postgres. Create a `.env.local` with your
+project credentials:
+
+```env
+SUPABASE_URL=https://<your-project-ref>.supabase.co
+SUPABASE_SECRET_KEY=<your-supabase-secret-key>
+```
+
+See [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md) for creating the Supabase
+project and applying the schema.
+
+### Start the app
+
+```bash
 npm run dev
 ```
 
-Open http://localhost:3000. The UI and the API run together in one process — there is no separate backend to start.
+Open http://localhost:3000. The UI and the API run together — there is no separate backend to start.
 
 ## Configure OpenAI (optional)
 
@@ -35,7 +55,7 @@ Get a key at https://platform.openai.com/api-keys — it needs chat-completion a
 - 🤖 **AI Analysis** — evidence-based treatment insights (requires an OpenAI key)
 - 🌙 **Dark Mode** — toggle in the header
 
-> Patient data is held in memory and is wiped whenever the server restarts.
+> Patient data is stored in Supabase Postgres and persists across server restarts.
 
 ## Common Commands
 

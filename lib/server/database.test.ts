@@ -1,71 +1,30 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
-  addPatient,
-  deletePatient,
-  getAllPatients,
-  getPatient,
-  patientExists,
-  updatePatient,
-  _resetForTests,
+  parseBloodPressure,
+  formatBloodPressure,
+  senderToRole,
+  roleToSender,
 } from './database';
-import type { Patient } from '../../types';
 
-function makePatient(overrides: Partial<Patient> = {}): Patient {
-  return {
-    patientId: 'p1',
-    name: 'Test Patient',
-    age: 40,
-    sex: 'Other',
-    occupation: null,
-    allergies: null,
-    currentStatus: {
-      heartRate: 0,
-      bloodPressure: '',
-      temperature: 0,
-      respiratoryRate: 0,
-      oxygenSaturation: 0,
-    },
-    medicalRecords: [],
-    treatments: [],
-    outcomes: [],
-    chatHistory: [],
-    reasonForVisit: null,
-    patientReport: null,
-    ...overrides,
-  };
-}
-
-describe('in-memory patient store', () => {
-  beforeEach(async () => {
-    await _resetForTests();
+describe('blood pressure mapping', () => {
+  it('parses "120/80"', () => {
+    expect(parseBloodPressure('120/80')).toEqual({ systolic: 120, diastolic: 80 });
   });
-
-  it('starts empty', async () => {
-    expect(await getAllPatients()).toEqual([]);
+  it('returns nulls for malformed input', () => {
+    expect(parseBloodPressure('')).toEqual({ systolic: null, diastolic: null });
+    expect(parseBloodPressure('high')).toEqual({ systolic: null, diastolic: null });
   });
-
-  it('round-trips a patient through add/get', async () => {
-    const patient = makePatient();
-    await addPatient(patient);
-
-    expect(await patientExists('p1')).toBe(true);
-    expect(await getPatient('p1')).toEqual(patient);
-    expect(await getAllPatients()).toHaveLength(1);
+  it('round-trips through formatBloodPressure', () => {
+    const { systolic, diastolic } = parseBloodPressure('118/76');
+    expect(formatBloodPressure(systolic, diastolic)).toBe('118/76');
   });
+});
 
-  it('updatePatient swaps the entry under a new id when the id changes', async () => {
-    await addPatient(makePatient({ patientId: 'p1' }));
-    await updatePatient('p1', makePatient({ patientId: 'p2', name: 'Renamed' }));
-
-    expect(await patientExists('p1')).toBe(false);
-    expect((await getPatient('p2'))?.name).toBe('Renamed');
-  });
-
-  it('deletePatient throws when the id is missing', async () => {
-    await expect(deletePatient('missing')).rejects.toThrow('Patient not found');
-  });
-
-  it('updatePatient throws when the id is missing', async () => {
-    await expect(updatePatient('missing', makePatient())).rejects.toThrow('Patient not found');
+describe('chat role mapping', () => {
+  it('maps sender labels to roles and back', () => {
+    expect(senderToRole('Doctor')).toBe('doctor');
+    expect(senderToRole('AI Assistant')).toBe('ai');
+    expect(roleToSender('doctor')).toBe('Doctor');
+    expect(roleToSender('ai')).toBe('AI Assistant');
   });
 });
