@@ -290,12 +290,12 @@ export default function MedicalRecordsPanel({ patient }: MedicalRecordsPanelProp
             <AlertDialogTitle>Delete Medical Record</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this medical record? This action cannot be undone.
-              {selectedRecord && (
-                <div className="mt-2 rounded-md bg-muted p-2">
-                  <p className="font-medium">{selectedRecord.description}</p>
-                </div>
-              )}
             </AlertDialogDescription>
+            {selectedRecord && (
+              <div className="mt-2 rounded-md bg-muted p-2">
+                <p className="font-medium">{selectedRecord.description}</p>
+              </div>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

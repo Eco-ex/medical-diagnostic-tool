@@ -521,21 +521,21 @@ export default function TreatmentHistoryPanel({ patient }: TreatmentHistoryPanel
             <AlertDialogTitle>Delete Treatment</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this treatment? This action cannot be undone.
-              {selectedTreatment && (
-                <>
-                  <div className="mt-2 rounded-md bg-muted p-2">
-                    <p className="font-medium">{selectedTreatment.description}</p>
-                  </div>
-                  {getOutcomeCountForTreatment(selectedTreatment.treatmentId) > 0 && (
-                    <div className="mt-2 rounded-md bg-destructive/10 p-2 text-destructive">
-                      <p className="text-sm font-medium">
-                        Warning: This will also delete {getOutcomeCountForTreatment(selectedTreatment.treatmentId)} associated outcome(s).
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
             </AlertDialogDescription>
+            {selectedTreatment && (
+              <>
+                <div className="mt-2 rounded-md bg-muted p-2">
+                  <p className="font-medium">{selectedTreatment.description}</p>
+                </div>
+                {getOutcomeCountForTreatment(selectedTreatment.treatmentId) > 0 && (
+                  <div className="mt-2 rounded-md bg-destructive/10 p-2 text-destructive">
+                    <p className="text-sm font-medium">
+                      Warning: This will also delete {getOutcomeCountForTreatment(selectedTreatment.treatmentId)} associated outcome(s).
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -594,13 +594,13 @@ export default function TreatmentHistoryPanel({ patient }: TreatmentHistoryPanel
             <AlertDialogTitle>Delete Outcome</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this outcome? This action cannot be undone.
-              {selectedOutcome && (
-                <div className="mt-2 rounded-md bg-muted p-2">
-                  <p className="text-xs font-medium text-muted-foreground">Result</p>
-                  <p className="text-sm">{selectedOutcome.result}</p>
-                </div>
-              )}
             </AlertDialogDescription>
+            {selectedOutcome && (
+              <div className="mt-2 rounded-md bg-muted p-2">
+                <p className="text-xs font-medium text-muted-foreground">Result</p>
+                <p className="text-sm">{selectedOutcome.result}</p>
+              </div>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
