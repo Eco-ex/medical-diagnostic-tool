@@ -10,19 +10,19 @@ import type {
   PatientId,
 } from '../types';
 
-export const OPENAI_KEY_STORAGE = 'openai_api_key';
+export const ANTHROPIC_KEY_STORAGE = 'anthropic_api_key';
 
-export function getStoredOpenAiKey(): string {
+export function getStoredAnthropicKey(): string {
   if (typeof window === 'undefined') return '';
-  return window.sessionStorage.getItem(OPENAI_KEY_STORAGE) ?? '';
+  return window.sessionStorage.getItem(ANTHROPIC_KEY_STORAGE) ?? '';
 }
 
-export function setStoredOpenAiKey(key: string): void {
+export function setStoredAnthropicKey(key: string): void {
   if (typeof window === 'undefined') return;
   if (key) {
-    window.sessionStorage.setItem(OPENAI_KEY_STORAGE, key);
+    window.sessionStorage.setItem(ANTHROPIC_KEY_STORAGE, key);
   } else {
-    window.sessionStorage.removeItem(OPENAI_KEY_STORAGE);
+    window.sessionStorage.removeItem(ANTHROPIC_KEY_STORAGE);
   }
 }
 
@@ -142,13 +142,13 @@ class ApiClient {
     await this.client.delete(`/api/patients/${patientId}/chat`);
   }
 
-  // AI Analysis — passes the user's per-session OpenAI key via header.
+  // AI Analysis — passes the user's per-session Anthropic key via header.
   async analyzeTreatment(patientId: PatientId, treatmentDescription: string): Promise<string> {
-    const apiKey = getStoredOpenAiKey();
+    const apiKey = getStoredAnthropicKey();
     const response = await this.client.post(
       `/api/patients/${patientId}/analyze-treatment`,
       { treatmentDescription },
-      { headers: apiKey ? { 'X-OpenAI-Key': apiKey } : {} }
+      { headers: apiKey ? { 'X-Anthropic-Key': apiKey } : {} }
     );
     return response.data.analysis;
   }

@@ -9,20 +9,20 @@ import { AlertCircle, Key, CheckCircle, ExternalLink, Info, Trash2 } from 'lucid
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { getStoredOpenAiKey, setStoredOpenAiKey } from '../lib/api';
+import { getStoredAnthropicKey, setStoredAnthropicKey } from '../lib/api';
 
 function maskKey(key: string): string {
   if (!key) return '';
-  if (key.length <= 7) return '****';
-  return `${key.slice(0, 3)}...${key.slice(-4)}`;
+  if (key.length <= 11) return '****';
+  return `${key.slice(0, 7)}...${key.slice(-4)}`;
 }
 
 export default function AdminSettings() {
-  const [storedKey, setStoredKey] = useState<string>(() => getStoredOpenAiKey());
+  const [storedKey, setStoredKey] = useState<string>(() => getStoredAnthropicKey());
   const [draft, setDraft] = useState('');
 
   useEffect(() => {
-    const onStorage = () => setStoredKey(getStoredOpenAiKey());
+    const onStorage = () => setStoredKey(getStoredAnthropicKey());
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
@@ -36,20 +36,20 @@ export default function AdminSettings() {
       toast.error('Please enter an API key');
       return;
     }
-    if (!trimmed.startsWith('sk-')) {
-      toast.error('Invalid API key format. OpenAI keys start with "sk-".');
+    if (!trimmed.startsWith('sk-ant-')) {
+      toast.error('Invalid API key format. Anthropic keys start with "sk-ant-".');
       return;
     }
-    setStoredOpenAiKey(trimmed);
+    setStoredAnthropicKey(trimmed);
     setStoredKey(trimmed);
     setDraft('');
-    toast.success('OpenAI API key saved for this session');
+    toast.success('Anthropic API key saved for this session');
   };
 
   const handleClear = () => {
-    setStoredOpenAiKey('');
+    setStoredAnthropicKey('');
     setStoredKey('');
-    toast.success('OpenAI API key cleared');
+    toast.success('Anthropic API key cleared');
   };
 
   return (
@@ -57,7 +57,7 @@ export default function AdminSettings() {
       <div>
         <h1 className="text-3xl font-bold">Admin Settings</h1>
         <p className="text-muted-foreground">
-          Configure your OpenAI API key for AI-powered treatment analysis.
+          Configure your Anthropic API key for AI-powered treatment analysis.
         </p>
       </div>
 
@@ -74,10 +74,10 @@ export default function AdminSettings() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Key className="h-5 w-5 text-primary" />
-            <CardTitle>OpenAI API Configuration</CardTitle>
+            <CardTitle>Anthropic API Configuration</CardTitle>
           </div>
           <CardDescription>
-            Paste your OpenAI key below. The system uses it to call OpenAI&apos;s chat completions API.
+            Paste your Anthropic key below. The system uses it to call Anthropic&apos;s Messages API.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -85,7 +85,7 @@ export default function AdminSettings() {
             <h3 className="text-sm font-semibold">Current Configuration</h3>
             <div className="space-y-2 text-sm">
               <div>
-                <span className="text-muted-foreground">OpenAI API Key:</span>
+                <span className="text-muted-foreground">Anthropic API Key:</span>
                 <div className="mt-1 font-mono text-xs bg-background px-2 py-1 rounded border">
                   {hasKey ? maskKey(storedKey) : 'Not configured'}
                 </div>
@@ -118,16 +118,16 @@ export default function AdminSettings() {
 
           <form onSubmit={handleSave} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="openai-key">OpenAI API Key</Label>
+              <Label htmlFor="anthropic-key">Anthropic API Key</Label>
               <Input
-                id="openai-key"
+                id="anthropic-key"
                 type="password"
-                placeholder="sk-..."
+                placeholder="sk-ant-..."
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Enter your OpenAI API key (starts with &quot;sk-&quot;). It is saved only in this
+                Enter your Anthropic API key (starts with &quot;sk-ant-&quot;). It is saved only in this
                 browser tab.
               </p>
             </div>
@@ -146,23 +146,23 @@ export default function AdminSettings() {
               <p className="text-sm">
                 Generate a key at{' '}
                 <a
-                  href="https://platform.openai.com/api-keys"
+                  href="https://console.anthropic.com/settings/keys"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
                 >
-                  platform.openai.com/api-keys
+                  console.anthropic.com/settings/keys
                 </a>
-                . The key needs access to chat completions and an active billing plan.
+                . The key needs access to the Messages API and an active billing plan.
               </p>
               <Button variant="link" className="h-auto p-0 justify-start" asChild>
                 <a
-                  href="https://platform.openai.com/api-keys"
+                  href="https://console.anthropic.com/settings/keys"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   <ExternalLink className="mr-1 h-3 w-3" />
-                  Open OpenAI Platform
+                  Open Anthropic Console
                 </a>
               </Button>
             </AlertDescription>

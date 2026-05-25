@@ -361,7 +361,7 @@ export function useClearChatHistory() {
   });
 }
 
-export function useAnalyzeTreatmentWithOpenAi() {
+export function useAnalyzeTreatmentWithAnthropic() {
   return useMutation({
     mutationFn: async ({ patientId, treatmentDescription }: { patientId: PatientId; treatmentDescription: string }) => {
       try {
@@ -369,29 +369,29 @@ export function useAnalyzeTreatmentWithOpenAi() {
       } catch (error: unknown) {
         const errorMessage = extractErrorMessage(error);
 
-        if (errorMessage.includes('OpenAI API key is not configured')) {
-          throw new Error('OPENAI_CONFIG_ERROR: OpenAI API key is not set. Open Admin Settings and paste your key.');
+        if (errorMessage.includes('Anthropic API key is not configured')) {
+          throw new Error('ANTHROPIC_CONFIG_ERROR: Anthropic API key is not set. Open Admin Settings and paste your key.');
         }
 
         if (errorMessage.includes('Authentication failed') ||
             errorMessage.includes('401') ||
             errorMessage.includes('403')) {
-          throw new Error('OPENAI_AUTH_ERROR: Invalid OpenAI API key. Update it in Admin Settings.');
+          throw new Error('ANTHROPIC_AUTH_ERROR: Invalid Anthropic API key. Update it in Admin Settings.');
         }
 
         if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
-          throw new Error('OPENAI_RATE_LIMIT: API rate limit exceeded. Please wait a moment and try again.');
+          throw new Error('ANTHROPIC_RATE_LIMIT: API rate limit exceeded. Please wait a moment and try again.');
         }
 
         if (errorMessage.includes('timeout') || errorMessage.includes('timed out') || errorMessage.includes('ETIMEDOUT')) {
-          throw new Error('OPENAI_NETWORK_ERROR: Request to OpenAI timed out. Please try again.');
+          throw new Error('ANTHROPIC_NETWORK_ERROR: Request to Anthropic timed out. Please try again.');
         }
 
         if (errorMessage.match(/5\d\d/) || errorMessage.includes('unavailable')) {
-          throw new Error('OPENAI_SERVICE_ERROR: OpenAI service is temporarily unavailable. Please try again.');
+          throw new Error('ANTHROPIC_SERVICE_ERROR: Anthropic service is temporarily unavailable. Please try again.');
         }
 
-        throw new Error(`OPENAI_ERROR: Failed to analyze treatment. ${errorMessage}`);
+        throw new Error(`ANTHROPIC_ERROR: Failed to analyze treatment. ${errorMessage}`);
       }
     },
   });

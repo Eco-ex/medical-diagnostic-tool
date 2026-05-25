@@ -3,16 +3,17 @@ import type { AnalyzeTreatmentRequest } from '@/types';
 import { getPatient } from '@/lib/server/database';
 import {
   buildAnalysisMessages,
-  callOpenAi,
+  callAnthropic,
   ANALYSIS_MODEL,
   ANALYSIS_PARAMS,
-  OpenAiError,
-} from '@/lib/server/openai';
+  ANALYSIS_SYSTEM_PROMPT,
+  AnthropicError,
+} from '@/lib/server/anthropic';
 import {
   recordAiInteraction,
   type RecordAiInteractionInput,
 } from '@/lib/server/ai-interactions';
-import { extractOpenAiKey } from '@/lib/server/openai-key';
+import { extractAnthropicKey } from '@/lib/server/anthropic-key';
 import { clientKey, rateLimit } from '@/lib/server/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -26,11 +27,11 @@ async function safeRecord(input: RecordAiInteractionInput): Promise<void> {
   }
 }
 
-// AI Analysis — the OpenAI key is supplied per-request via the X-OpenAI-Key
+// AI Analysis — the Anthropic key is supplied per-request via the X-Anthropic-Key
 // header and is never persisted server-side.
 //
-// This route is a proxy to OpenAI under a caller-supplied key. Without a limit,
-// anyone reachable on the network could use it to anonymize their own OpenAI
+// This route is a proxy to Anthropic under a caller-supplied key. Without a limit,
+// anyone reachable on the network could use it to anonymize their own Anthropic
 // traffic through our IP, so it is rate-limited per IP (10 req/min).
 //
 // Every call — success or failure — is recorded to ai_interactions for clinical
@@ -63,12 +64,12 @@ export async function POST(
       );
     }
 
-    const apiKey = extractOpenAiKey(request);
+    const apiKey = extractAnthropicKey(request);
     if (!apiKey) {
       return NextResponse.json(
         {
           error:
-            'OpenAI API key is missing or malformed. Please set a valid key in Admin Settings.',
+            'Anthropic API key is missing or malformed. Please set a valid key in Admin Settings.',
         },
         { status: 400 }
       );
@@ -94,13 +95,16 @@ export async function POST(
       patientContext,
       requestModel: ANALYSIS_MODEL,
       requestMessages: messages,
-      requestParams: ANALYSIS_PARAMS,
-      openaiKeyLast4: apiKey.slice(-4),
+      // Include the system prompt so audit rows are reproducible if the prompt
+      // is ever tuned. Anthropic takes `system` as a top-level field, not part
+      // of `messages`, so it would otherwise vanish from the log.
+      requestParams: { ...ANALYSIS_PARAMS, system: ANALYSIS_SYSTEM_PROMPT },
+      anthropicKeyLast4: apiKey.slice(-4),
     };
     const startedAt = Date.now();
 
     try {
-      const result = await callOpenAi(apiKey, messages, ANALYSIS_PARAMS);
+      const result = await callAnthropic(apiKey, messages, ANALYSIS_PARAMS);
 
       await safeRecord({
         ...base,
@@ -125,7 +129,7 @@ export async function POST(
         ...base,
         status: 'error',
         errorMessage: message,
-        httpStatus: err instanceof OpenAiError ? err.httpStatus : null,
+        httpStatus: err instanceof AnthropicError ? err.httpStatus : null,
         latencyMs: Date.now() - startedAt,
       });
 

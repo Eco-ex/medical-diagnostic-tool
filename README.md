@@ -1,6 +1,6 @@
 # Clinical Decision Support Tool
 
-A web-based tool that helps healthcare professionals analyze treatment options with AI assistance. Open the app and start working — no accounts, no login. Each user supplies their own OpenAI API key from Admin Settings; the key lives only in the browser tab and is forwarded per request.
+A web-based tool that helps healthcare professionals analyze treatment options with AI assistance. Open the app and start working — no accounts, no login. Each user supplies their own Anthropic API key from Admin Settings; the key lives only in the browser tab and is forwarded per request.
 
 Built as a single [Next.js](https://nextjs.org/) app: the UI and the API run in one process, on one port.
 
@@ -10,7 +10,7 @@ Built as a single [Next.js](https://nextjs.org/) app: the UI and the API run in 
 - **In-memory patient data** — patients, vitals, records, treatments, outcomes, and chat history are kept in a server-side `Map`. Restarting the server wipes everything.
 - **Patient management** — add, edit, search, and delete patients.
 - **Medical records, treatments, outcomes, vitals, and per-patient summaries.**
-- **AI treatment analysis** — uses OpenAI chat completions. The user's key is sent per-request via the `X-OpenAI-Key` header and is never persisted server-side.
+- **AI treatment analysis** — uses Anthropic's Messages API. The user's key is sent per-request via the `X-Anthropic-Key` header and is never persisted server-side.
 - **Per-patient chat history.**
 - **Dark mode** — theme toggle in the header.
 - **Responsive design** — works on desktop, tablet, and mobile.
@@ -21,7 +21,7 @@ Built as a single [Next.js](https://nextjs.org/) app: the UI and the API run in 
 - **UI**: TailwindCSS, hand-rolled UI primitives, TanStack Query for data fetching.
 - **API**: Next.js Route Handlers under [app/api/](app/api/) — same-origin, so no CORS.
 - **Storage**: In-memory `Map` only, isolated in [lib/server/database.ts](lib/server/database.ts). No database, no JSON files. Data is lost on restart.
-- **AI**: OpenAI Chat Completions. Key is supplied per-request via the `X-OpenAI-Key` header.
+- **AI**: Anthropic Messages API (Claude). Key is supplied per-request via the `X-Anthropic-Key` header.
 - **Tests**: Vitest.
 
 > **Deployment model:** because the patient store lives in process memory, the app must run as a **single long-lived Node process** (`next dev` or `next start`). It is not suitable for per-request serverless until the store is backed by a real database — see [Data Persistence](#-data-persistence).
@@ -30,7 +30,7 @@ Built as a single [Next.js](https://nextjs.org/) app: the UI and the API run in 
 
 - Node.js 20.9 or higher (developed on Node 22)
 - npm
-- An OpenAI API key (only needed if you use the AI treatment analysis)
+- An Anthropic API key (only needed if you use the AI treatment analysis)
 
 ## 🚀 Quick Start
 
@@ -59,16 +59,16 @@ All environment variables are optional; the app runs with sensible defaults. Cop
 | --- | --- |
 | `NEXT_PUBLIC_API_URL` | Base URL for API calls. Unset → same-origin `/api` routes (the default). Set it only to point the UI at a different host. |
 
-## 🔑 OpenAI API Key
+## 🔑 Anthropic API Key
 
-The server never stores the OpenAI API key. To use the AI treatment analysis:
+The server never stores the Anthropic API key. To use the AI treatment analysis:
 
 1. Open the app and click **Admin Settings** in the header.
-2. Paste your OpenAI key (starts with `sk-`) and click **Save key**.
-3. The key is saved in the current tab's `sessionStorage` and is sent only when you trigger an AI analysis, via the `X-OpenAI-Key` request header.
+2. Paste your Anthropic key (starts with `sk-ant-`) and click **Save key**.
+3. The key is saved in the current tab's `sessionStorage` and is sent only when you trigger an AI analysis, via the `X-Anthropic-Key` request header.
 4. Closing the tab clears the key. Each user/device sets their own.
 
-Generate a key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys). It needs access to chat completions and an active billing plan.
+Generate a key at [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys). It needs access to the Messages API and an active billing plan.
 
 ## 🗄️ Data Persistence
 
@@ -80,9 +80,9 @@ Generate a key at [platform.openai.com/api-keys](https://platform.openai.com/api
 
 - UI and API are same-origin, so there is no CORS surface.
 - Security headers (CSP, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Content-Type-Options`) are set in [next.config.mjs](next.config.mjs).
-- API keys are never stored server-side; the client provides them per-request and the server only uses them to forward to OpenAI.
-- `X-OpenAI-Key` is shape-validated by [lib/server/openai-key.ts](lib/server/openai-key.ts) before being forwarded.
-- `/api/patients/[id]/analyze-treatment` is rate-limited per IP (10 req/min) to prevent the backend being used as an open proxy to OpenAI.
+- API keys are never stored server-side; the client provides them per-request and the server only uses them to forward to Anthropic.
+- `X-Anthropic-Key` is shape-validated by [lib/server/anthropic-key.ts](lib/server/anthropic-key.ts) before being forwarded.
+- `/api/patients/[id]/analyze-treatment` is rate-limited per IP (10 req/min) to prevent the backend being used as an open proxy to Anthropic.
 - **Known CSP relaxation:** `script-src` allows `'unsafe-inline'` because Next.js injects inline bootstrap scripts. The previous Vite build used a strict `script-src 'self'`. See the comment in [next.config.mjs](next.config.mjs) for the nonce-based remediation.
 
 ## 📁 Project Structure
@@ -108,8 +108,8 @@ medical-diagnostic-tool/
 │   ├── utils.ts
 │   └── server/              # Server-only modules
 │       ├── database.ts      # In-memory store (the persistence seam)
-│       ├── openai.ts        # OpenAI integration
-│       ├── openai-key.ts    # X-OpenAI-Key validation
+│       ├── anthropic.ts     # Anthropic integration
+│       ├── anthropic-key.ts # X-Anthropic-Key validation
 │       └── rate-limit.ts
 ├── types.ts                 # Shared types
 ├── next.config.mjs
@@ -141,7 +141,7 @@ medical-diagnostic-tool/
 
 ### AI & Chat
 
-- `POST /api/patients/[id]/analyze-treatment` — analyze treatment (requires `X-OpenAI-Key` header)
+- `POST /api/patients/[id]/analyze-treatment` — analyze treatment (requires `X-Anthropic-Key` header)
 - `GET /api/patients/[id]/chat` — get chat history
 - `POST /api/patients/[id]/chat` — append a chat message
 - `DELETE /api/patients/[id]/chat` — clear chat history
@@ -172,10 +172,10 @@ Patient data lives in the server process's memory and resets on restart.
 - Check that port 3000 is available.
 - Ensure Node.js version is 20.9 or higher.
 
-### OpenAI integration not working
+### Anthropic integration not working
 - Open Admin Settings and confirm a key is saved for this tab.
 - The key is per-tab — opening a new tab requires re-entering it.
-- Confirm the key starts with `sk-` and has chat-completion permission.
+- Confirm the key starts with `sk-ant-` and has Messages API permission.
 
 ## 📝 License
 

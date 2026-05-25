@@ -35,15 +35,15 @@ npm run dev
 
 Open http://localhost:3000. The UI and the API run together — there is no separate backend to start.
 
-## Configure OpenAI (optional)
+## Configure Anthropic (optional)
 
-The AI treatment analysis needs an OpenAI API key:
+The AI treatment analysis needs an Anthropic API key:
 
 1. Click **Admin Settings** in the header.
-2. Paste your key (starts with `sk-`) and click **Save key**.
-3. The key is stored only in this browser tab's session storage and is sent per-request to OpenAI. Closing the tab clears it.
+2. Paste your key (starts with `sk-ant-`) and click **Save key**.
+3. The key is stored only in this browser tab's session storage and is sent per-request to Anthropic. Closing the tab clears it.
 
-Get a key at https://platform.openai.com/api-keys — it needs chat-completion access and an active billing plan.
+Get a key at https://console.anthropic.com/settings/keys — it needs access to the Messages API and an active billing plan.
 
 ## What's Available
 
@@ -52,7 +52,7 @@ Get a key at https://platform.openai.com/api-keys — it needs chat-completion a
 - 💊 **Treatments & Outcomes** — document treatments and their results
 - 📊 **Vitals Tracking** — monitor patient vital signs
 - 📝 **Summary** — reason for visit and patient report
-- 🤖 **AI Analysis** — evidence-based treatment insights (requires an OpenAI key)
+- 🤖 **AI Analysis** — evidence-based treatment insights (requires an Anthropic key)
 - 🌙 **Dark Mode** — toggle in the header
 
 > Patient data is stored in Supabase Postgres and persists across server restarts.

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useGetChatHistory, useAddChatMessage, useAnalyzeTreatmentWithOpenAi, useGetPatient, useClearChatHistory } from '../hooks/useQueries';
+import { useGetChatHistory, useAddChatMessage, useAnalyzeTreatmentWithAnthropic, useGetPatient, useClearChatHistory } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -50,7 +50,7 @@ export default function ChatPanel({ patientId }: ChatPanelProps) {
   const { data: chatHistory = [], isLoading } = useGetChatHistory(patientId);
   const { data: patient } = useGetPatient(patientId);
   const addMessage = useAddChatMessage();
-  const analyzeTreatment = useAnalyzeTreatmentWithOpenAi();
+  const analyzeTreatment = useAnalyzeTreatmentWithAnthropic();
   const clearHistory = useClearChatHistory();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -63,73 +63,73 @@ export default function ChatPanel({ patientId }: ChatPanelProps) {
   const parseErrorDetails = (error: any): ErrorDetails => {
     const errorMessage = error?.message || String(error);
 
-    if (errorMessage.includes('OPENAI_AUTH_ERROR')) {
+    if (errorMessage.includes('ANTHROPIC_AUTH_ERROR')) {
       return {
         type: 'auth',
-        title: 'OpenAI Authentication Failed',
-        message: 'The configured OpenAI API key is invalid or has been revoked.',
-        actionable: 'An administrator needs to update the OpenAI API key in Admin Settings with a valid key from platform.openai.com.',
-        technicalDetails: 'Verify the API key is correct and has not been revoked in your OpenAI account.',
+        title: 'Anthropic Authentication Failed',
+        message: 'The configured Anthropic API key is invalid or has been revoked.',
+        actionable: 'An administrator needs to update the Anthropic API key in Admin Settings with a valid key from console.anthropic.com.',
+        technicalDetails: 'Verify the API key is correct and has not been revoked in your Anthropic account.',
       };
     }
 
-    if (errorMessage.includes('OPENAI_CONFIG_ERROR')) {
+    if (errorMessage.includes('ANTHROPIC_CONFIG_ERROR')) {
       return {
         type: 'config',
-        title: 'OpenAI Configuration Error',
-        message: 'The OpenAI API configuration is missing or incorrect.',
-        actionable: 'An administrator needs to configure the OpenAI API key in Admin Settings. Ensure the API key is valid and has the necessary permissions.',
-        technicalDetails: 'Check that the OpenAI API key is properly configured in the backend settings.',
+        title: 'Anthropic Configuration Error',
+        message: 'The Anthropic API configuration is missing or incorrect.',
+        actionable: 'An administrator needs to configure the Anthropic API key in Admin Settings. Ensure the API key is valid and has the necessary permissions.',
+        technicalDetails: 'Check that the Anthropic API key is properly configured in the backend settings.',
       };
     }
 
-    if (errorMessage.includes('OPENAI_NETWORK_ERROR')) {
+    if (errorMessage.includes('ANTHROPIC_NETWORK_ERROR')) {
       return {
         type: 'network',
         title: 'Network Connection Error',
-        message: 'Unable to connect to the OpenAI service due to network timeout or connection issues.',
-        actionable: 'The request may have taken too long to complete. Try simplifying your query or try again later. If the problem persists, check status.openai.com for service status.',
-        technicalDetails: 'Internet Computer HTTP outcalls have timeout limits. Complex queries may exceed these limits. Consider breaking down complex requests into simpler ones.',
+        message: 'Unable to connect to the Anthropic service due to network timeout or connection issues.',
+        actionable: 'The request may have taken too long to complete. Try simplifying your query or try again later. If the problem persists, check status.anthropic.com for service status.',
+        technicalDetails: 'Requests have a 30-second timeout. Complex queries may exceed this limit. Consider breaking down complex requests into simpler ones.',
       };
     }
 
-    if (errorMessage.includes('OPENAI_RATE_LIMIT')) {
+    if (errorMessage.includes('ANTHROPIC_RATE_LIMIT')) {
       return {
         type: 'rate_limit',
-        title: 'OpenAI Rate Limit Reached',
-        message: 'Too many requests have been made to the OpenAI API in a short time.',
-        actionable: 'Please wait a few moments and try again. If this persists, an administrator should review the API usage patterns or upgrade the OpenAI plan.',
-        technicalDetails: 'Rate limits depend on your OpenAI plan. Consider upgrading for higher limits.',
+        title: 'Anthropic Rate Limit Reached',
+        message: 'Too many requests have been made to the Anthropic API in a short time.',
+        actionable: 'Please wait a few moments and try again. If this persists, an administrator should review the API usage patterns or upgrade the Anthropic plan.',
+        technicalDetails: 'Rate limits depend on your Anthropic plan. Consider upgrading for higher limits.',
       };
     }
 
-    if (errorMessage.includes('OPENAI_SERVICE_ERROR')) {
+    if (errorMessage.includes('ANTHROPIC_SERVICE_ERROR')) {
       return {
         type: 'service',
-        title: 'OpenAI Service Unavailable',
-        message: 'The OpenAI service is temporarily unavailable.',
-        actionable: 'Please try again in a few moments. Check status.openai.com for service status updates.',
-        technicalDetails: 'This is typically a temporary issue with OpenAI\'s infrastructure.',
+        title: 'Anthropic Service Unavailable',
+        message: 'The Anthropic service is temporarily unavailable.',
+        actionable: 'Please try again in a few moments. Check status.anthropic.com for service status updates.',
+        technicalDetails: 'This is typically a temporary issue with Anthropic\'s infrastructure.',
       };
     }
 
-    if (errorMessage.includes('OPENAI_REQUEST_ERROR')) {
+    if (errorMessage.includes('ANTHROPIC_REQUEST_ERROR')) {
       return {
         type: 'config',
         title: 'Invalid Request Format',
-        message: 'The request to OpenAI has an invalid format or JSON structure.',
-        actionable: 'An administrator needs to verify the OpenAI API integration follows the latest API documentation. The backend must properly format JSON requests using a JSON serialization library rather than string concatenation.',
-        technicalDetails: 'Check the OpenAI API documentation for the correct request format. The backend should use proper JSON serialization to avoid escaping issues.',
+        message: 'The request to Anthropic has an invalid format or JSON structure.',
+        actionable: 'An administrator needs to verify the Anthropic API integration follows the latest API documentation.',
+        technicalDetails: 'Check the Anthropic Messages API documentation for the correct request format.',
       };
     }
 
-    if (errorMessage.includes('OPENAI_ERROR')) {
-      const details = errorMessage.replace('OPENAI_ERROR:', '').trim();
+    if (errorMessage.includes('ANTHROPIC_ERROR')) {
+      const details = errorMessage.replace('ANTHROPIC_ERROR:', '').trim();
       return {
         type: 'general',
         title: 'AI Analysis Error',
         message: 'An error occurred while performing AI analysis.',
-        actionable: 'Please try again. If the problem persists, an administrator should check the OpenAI service status and configuration.',
+        actionable: 'Please try again. If the problem persists, an administrator should check the Anthropic service status and configuration.',
         technicalDetails: details || 'Check the backend logs for more detailed error information.',
       };
     }
@@ -169,10 +169,10 @@ export default function ChatPanel({ patientId }: ChatPanelProps) {
           patientId,
           treatmentDescription: contextualQuery,
         });
-      } catch (openAiError: any) {
-        const errorDetails = parseErrorDetails(openAiError);
+      } catch (anthropicError: any) {
+        const errorDetails = parseErrorDetails(anthropicError);
         setCurrentError(errorDetails);
-        throw openAiError;
+        throw anthropicError;
       }
 
       return analysisResponse;

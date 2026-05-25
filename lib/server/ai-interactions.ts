@@ -29,11 +29,11 @@ export interface RecordAiInteractionInput {
   errorMessage?: string | null;
 
   // SECURITY
-  openaiKeyLast4?: string | null;
+  anthropicKeyLast4?: string | null;
 }
 
 /**
- * Persists one OpenAI call — full input and output — to ai_interactions.
+ * Persists one Anthropic call — full input and output — to ai_interactions.
  * Returns the new row id, or null if the patient could not be resolved.
  */
 export async function recordAiInteraction(
@@ -66,7 +66,7 @@ export async function recordAiInteraction(
       http_status: input.httpStatus ?? null,
       error_code: input.errorCode ?? null,
       error_message: input.errorMessage ?? null,
-      openai_key_last4: input.openaiKeyLast4 ?? null,
+      anthropic_key_last4: input.anthropicKeyLast4 ?? null,
     })
     .select('id')
     .single();
