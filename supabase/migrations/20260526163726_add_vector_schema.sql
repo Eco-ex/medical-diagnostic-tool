@@ -1,5 +1,12 @@
 create extension if not exists vector;
 
+-- This migration is the authoritative definition of the vector tables. The
+-- baseline remote_schema dump created earlier stub versions (chunk_embeddings at
+-- vector(1536), chunks without section_heading); drop them first so a fresh
+-- `supabase db reset` is reproducible. Safe: ingestion is greenfield (no rows).
+drop table if exists public.chunk_embeddings cascade;
+drop table if exists public.chunks cascade;
+
 create table public.chunks (
   id              uuid primary key default gen_random_uuid(),
   document_id     uuid not null references public.documents(id) on delete cascade,
@@ -22,8 +29,8 @@ create index chunks_content_tsv_idx on public.chunks using gin (content_tsv);
 
 create table public.chunk_embeddings (
   chunk_id   uuid primary key references public.chunks(id) on delete cascade,
-  model      text not null default 'voyage-4-large',          -- update if voyage-3-large
-  embedding  vector(1024) not null,                            -- update if voyage-4 is different
+  model      text not null default 'voyage-4-large',          -- voyage-4-large (verified current)
+  embedding  vector(1024) not null,                            -- voyage-4-large emits 1024 dims (options: 256/512/1024/2048; 1024 default)
   created_at timestamptz not null default now()
 );
 

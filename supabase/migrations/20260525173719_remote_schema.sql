@@ -232,7 +232,7 @@ ALTER TABLE "public"."chat_messages" OWNER TO "postgres";
 CREATE TABLE IF NOT EXISTS "public"."chunk_embeddings" (
     "chunk_id" "uuid" NOT NULL,
     "model" "text" NOT NULL,
-    "embedding" "public"."vector"(1536) NOT NULL,
+    "embedding" "public"."vector"(1024) NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 
