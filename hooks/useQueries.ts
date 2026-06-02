@@ -9,6 +9,10 @@ import type {
   Outcome,
   ChatMessage,
   NewPatient,
+  DocumentSummary,
+  DocumentStatus,
+  SearchResult,
+  KnowledgePreset,
 } from '../types';
 
 function extractErrorMessage(error: unknown): string {
@@ -357,6 +361,98 @@ export function useClearChatHistory() {
     onSuccess: (_, patientId) => {
       queryClient.invalidateQueries({ queryKey: ['chatHistory', patientId] });
       queryClient.invalidateQueries({ queryKey: ['patient', patientId] });
+    },
+  });
+}
+
+// ---- Knowledge base (admin) -----------------------------------------------
+
+// Statuses where the ingestion pipeline is still working on a document.
+export const ACTIVE_DOCUMENT_STATUSES = new Set<DocumentStatus>([
+  'uploaded',
+  'parsing',
+  'parsed',
+  'chunking',
+  'chunked',
+  'embedding',
+]);
+
+export function useGetDocuments() {
+  return useQuery<DocumentSummary[]>({
+    queryKey: ['knowledge', 'documents'],
+    queryFn: () => apiClient.listKnowledgeDocuments(),
+    // Poll while any document is mid-pipeline; go idle once all are terminal.
+    refetchInterval: (query) =>
+      (query.state.data ?? []).some((d) => ACTIVE_DOCUMENT_STATUSES.has(d.status)) ? 2500 : false,
+  });
+}
+
+export function useUploadDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ file, preset }: { file: File; preset: KnowledgePreset }) => {
+      try {
+        return await apiClient.uploadKnowledgeDocument(file, preset);
+      } catch (error: unknown) {
+        const errorMessage = extractErrorMessage(error);
+        if (errorMessage.toLowerCase().includes('pdf')) {
+          throw new Error(`INVALID_FILE: ${errorMessage}`);
+        }
+        if (errorMessage.includes('limit') || errorMessage.includes('exceeds')) {
+          throw new Error(`FILE_TOO_LARGE: ${errorMessage}`);
+        }
+        throw new Error(`Failed to upload document: ${errorMessage}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge', 'documents'] });
+    },
+  });
+}
+
+export function useDeleteDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      try {
+        await apiClient.deleteKnowledgeDocument(id);
+      } catch (error: unknown) {
+        throw new Error(`Failed to delete document: ${extractErrorMessage(error)}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge', 'documents'] });
+    },
+  });
+}
+
+export function useReindexDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      try {
+        await apiClient.reindexKnowledgeDocument(id);
+      } catch (error: unknown) {
+        throw new Error(`Failed to reindex document: ${extractErrorMessage(error)}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge', 'documents'] });
+    },
+  });
+}
+
+export function useSearchKnowledge() {
+  return useMutation<SearchResult[], Error, { query: string; matchCount?: number }>({
+    mutationFn: async ({ query, matchCount }) => {
+      try {
+        return await apiClient.searchKnowledge(query, matchCount);
+      } catch (error: unknown) {
+        throw new Error(`Search failed: ${extractErrorMessage(error)}`);
+      }
     },
   });
 }

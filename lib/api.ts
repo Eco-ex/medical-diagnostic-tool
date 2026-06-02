@@ -8,6 +8,10 @@ import type {
   Outcome,
   ChatMessage,
   PatientId,
+  DocumentSummary,
+  UploadResult,
+  SearchResult,
+  KnowledgePreset,
 } from '../types';
 
 export const ANTHROPIC_KEY_STORAGE = 'anthropic_api_key';
@@ -151,6 +155,41 @@ class ApiClient {
       { headers: apiKey ? { 'X-Anthropic-Key': apiKey } : {} }
     );
     return response.data.analysis;
+  }
+
+  // Knowledge base (admin) endpoints
+  async uploadKnowledgeDocument(file: File, preset: KnowledgePreset): Promise<UploadResult> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('preset', preset);
+    // Use the bare axios (not the JSON-defaulted instance) so the browser sets
+    // multipart/form-data with the correct boundary.
+    const response = await axios.post<UploadResult>(
+      `${API_BASE_URL}/api/admin/knowledge/upload`,
+      form,
+    );
+    return response.data;
+  }
+
+  async listKnowledgeDocuments(): Promise<DocumentSummary[]> {
+    const response = await this.client.get<DocumentSummary[]>('/api/admin/knowledge/documents');
+    return response.data;
+  }
+
+  async deleteKnowledgeDocument(id: string): Promise<void> {
+    await this.client.delete(`/api/admin/knowledge/documents/${id}`);
+  }
+
+  async reindexKnowledgeDocument(id: string): Promise<void> {
+    await this.client.post(`/api/admin/knowledge/documents/${id}/reindex`);
+  }
+
+  async searchKnowledge(query: string, matchCount = 10): Promise<SearchResult[]> {
+    const response = await this.client.post<{ results: SearchResult[] }>(
+      '/api/admin/knowledge/search',
+      { query, matchCount },
+    );
+    return response.data.results;
   }
 }
 

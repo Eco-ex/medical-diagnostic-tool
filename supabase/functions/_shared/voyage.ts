@@ -98,12 +98,31 @@ export async function embedDocuments(
   return out;
 }
 
+/**
+ * Embed a single search query. Mirrors embedDocuments but with input_type="query"
+ * — Voyage tunes query vs. document embeddings differently (~5% retrieval lift).
+ */
+export async function embedQuery(text: string): Promise<number[]> {
+  const [vec] = await embedRequest([text], "query");
+  if (!vec || vec.length !== EMBED_DIM) {
+    throw new VoyageError(
+      `Voyage returned a ${vec?.length ?? 0}-dim query vector, expected ${EMBED_DIM}`,
+      200,
+      false,
+    );
+  }
+  return vec;
+}
+
 // Embed a single request's worth of texts (already sized within Voyage limits).
-async function embedRequest(texts: string[]): Promise<number[][]> {
+async function embedRequest(
+  texts: string[],
+  inputType: "document" | "query" = "document",
+): Promise<number[][]> {
   const body = JSON.stringify({
     model: EMBED_MODEL,
     input: texts,
-    input_type: "document", // ingestion side; queries embed with "query"
+    input_type: inputType, // "document" for ingestion; "query" at search time
     output_dimension: EMBED_DIM, // explicit, though 1024 is the default
     output_dtype: "float",
     truncation: true, // truncate any single input over the 32K context limit

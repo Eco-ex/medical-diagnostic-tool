@@ -1,4 +1,10 @@
 import { createHash } from 'node:crypto';
+import {
+  KNOWLEDGE_PRESETS,
+  type DocumentSummary,
+  type KnowledgePreset,
+  type SearchResult,
+} from '../../types';
 import { supabase } from './supabase';
 
 /* ============================================================================
@@ -15,12 +21,12 @@ import { supabase } from './supabase';
 // chunk-document). Keep in sync with supabase/functions/*/index.ts.
 export const KNOWLEDGE_BUCKET = 'knowledge';
 
-// Mirrors the documents.preset CHECK constraint (migration 20260525173719).
-export const PRESETS = ['research_paper', 'clinical_guideline', 'case_report'] as const;
-export type Preset = (typeof PRESETS)[number];
+// Preset values mirror the documents.preset CHECK constraint; the canonical list
+// lives in types.ts (KNOWLEDGE_PRESETS) so client code can share it.
+export type Preset = KnowledgePreset;
 
 export function isPreset(value: unknown): value is Preset {
-  return typeof value === 'string' && (PRESETS as readonly string[]).includes(value);
+  return typeof value === 'string' && (KNOWLEDGE_PRESETS as readonly string[]).includes(value);
 }
 
 export interface IngestInput {
@@ -132,4 +138,124 @@ export async function triggerParse(documentId: string): Promise<void> {
   } catch (e) {
     console.error(`parse-document invoke threw for ${documentId}:`, e);
   }
+}
+
+// ---- Admin document management (Phase 7) ----------------------------------
+
+const DOCUMENT_LIST_COLUMNS =
+  'id, filename, status, preset, chunk_count, size_bytes, error_message, created_at, updated_at';
+
+/** Lists all documents, newest first, mapped to the client-facing summary shape. */
+export async function listDocuments(): Promise<DocumentSummary[]> {
+  const { data, error } = await supabase
+    .from('documents')
+    .select(DOCUMENT_LIST_COLUMNS)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: r.id as string,
+    filename: r.filename as string,
+    status: r.status as DocumentSummary['status'],
+    preset: r.preset as DocumentSummary['preset'],
+    chunkCount: (r.chunk_count as number | null) ?? null,
+    sizeBytes: (r.size_bytes as number | null) ?? null,
+    errorMessage: (r.error_message as string | null) ?? null,
+    createdAt: r.created_at as string,
+    updatedAt: r.updated_at as string,
+  }));
+}
+
+/**
+ * Deletes a document and its derived data. The documents-row delete cascades to
+ * chunks -> chunk_embeddings and to ingestion_jobs via FKs; Storage objects have
+ * no FK, so the PDF and markdown are removed explicitly (best-effort). Returns
+ * false if the document does not exist.
+ */
+export async function deleteDocument(id: string): Promise<boolean> {
+  const { data: doc, error: selErr } = await supabase
+    .from('documents')
+    .select('source_path, markdown_path')
+    .eq('id', id)
+    .maybeSingle();
+  if (selErr) throw selErr;
+  if (!doc) return false;
+
+  const { data, error } = await supabase.from('documents').delete().eq('id', id).select('id');
+  if (error) throw error;
+  if (!data || data.length === 0) return false;
+
+  const paths = [doc.source_path, doc.markdown_path].filter(
+    (p): p is string => typeof p === 'string' && p.length > 0,
+  );
+  if (paths.length > 0) {
+    const { error: rmErr } = await supabase.storage.from(KNOWLEDGE_BUCKET).remove(paths);
+    if (rmErr) console.error(`Storage cleanup failed for document ${id}:`, rmErr.message);
+  }
+  return true;
+}
+
+// Statuses a document can be reindexed from — i.e. the pipeline is not running.
+const TERMINAL_DOC_STATUSES = [
+  'indexed',
+  'parse_failed',
+  'chunk_failed',
+  'embed_failed',
+  'archived',
+];
+
+export type ReindexResult = 'reindexed' | 'not_found' | 'busy';
+
+/**
+ * Resets a document to re-run the full ingestion pipeline. Only fires from a
+ * terminal status (guarded UPDATE) so a reindex cannot race an in-flight pipeline
+ * — returns 'busy' if the document is still processing, 'not_found' if it's gone.
+ * On success it clears the derived fields, deletes stale chunks (so search won't
+ * return the old revision mid-reprocess), and the caller re-invokes parse-document.
+ */
+export async function reindexDocument(id: string): Promise<ReindexResult> {
+  const { data, error } = await supabase
+    .from('documents')
+    .update({ status: 'uploaded', error_message: null, chunk_count: null })
+    .eq('id', id)
+    .in('status', TERMINAL_DOC_STATUSES)
+    .select('id');
+  if (error) throw error;
+
+  if (data && data.length > 0) {
+    // Clear stale chunks immediately (chunk-document also clears them idempotently).
+    const { error: delErr } = await supabase.from('chunks').delete().eq('document_id', id);
+    if (delErr) console.error(`Failed clearing chunks on reindex for ${id}:`, delErr.message);
+    return 'reindexed';
+  }
+
+  // No row matched the guard: distinguish a missing document from a busy one.
+  const { data: existing, error: exErr } = await supabase
+    .from('documents')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle();
+  if (exErr) throw exErr;
+  return existing ? 'busy' : 'not_found';
+}
+
+/**
+ * Runs the search-quality sandbox: invokes the search-chunks edge function, which
+ * embeds the query with Voyage (input_type="query") and runs match_chunks.
+ */
+export async function searchKnowledge(query: string, matchCount = 10): Promise<SearchResult[]> {
+  const { data, error } = await supabase.functions.invoke('search-chunks', {
+    body: { query, matchCount },
+  });
+  // Surface failures loudly. supabase-js sets `error` for non-2xx, but defensively
+  // also check for an { error } body so a Voyage/match_chunks failure never gets
+  // silently flattened into an empty result set.
+  if (error) throw new Error(`search-chunks failed: ${error.message}`);
+  if (data && typeof data === 'object' && 'error' in data && data.error) {
+    throw new Error(`search-chunks failed: ${String((data as { error: unknown }).error)}`);
+  }
+  const results = (data as { results?: unknown } | null)?.results;
+  if (!Array.isArray(results)) {
+    throw new Error('search-chunks returned an unexpected response');
+  }
+  return results as SearchResult[];
 }
