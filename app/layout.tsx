@@ -4,7 +4,7 @@ import { Providers } from './providers';
 import Header from '@/components/Header';
 
 export const metadata: Metadata = {
-  title: 'Clinical Decision Support Tool',
+  title: 'Medical Diagnostic Tool',
   description:
     'A web-based tool that helps healthcare professionals analyze treatment options with AI assistance.',
 };

@@ -4,7 +4,7 @@ import type {
 import { supabase } from './supabase';
 
 /* ============================================================================
- * Clinical Decision Support Tool — persistence layer (Supabase Postgres)
+ * Medical Diagnostic Tool — persistence layer (Supabase Postgres)
  *
  * The single seam between API routes and storage. Routes pass the human-facing
  * patient id (the "MRN"); this layer resolves it to the internal uuid and maps

@@ -1,4 +1,4 @@
-# Clinical Decision Support Tool
+# Medical Diagnostic Tool
 
 A web-based tool that helps healthcare professionals manage patients and analyze treatment options with AI assistance. Open the app and start working — no accounts, no login. Each user supplies their own Anthropic API key from Admin Settings; the key lives only in the browser tab and is forwarded per request.
 

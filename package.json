@@ -1,5 +1,5 @@
 {
-  "name": "clinical-decision-support-tool",
+  "name": "medical-diagnostic-tool",
   "version": "2.0.0",
   "private": true,
   "scripts": {

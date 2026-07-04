@@ -15,8 +15,8 @@ export default function Header() {
         <Link href="/" className="flex items-center gap-3">
           <Activity className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-xl font-bold">MedAssist</h1>
-            <p className="text-xs text-muted-foreground">Clinical Decision Support</p>
+            <h1 className="text-xl font-bold">Medical Diagnostic Tool</h1>
+            <p className="text-xs text-muted-foreground">AI-Assisted Patient Care</p>
           </div>
         </Link>
 

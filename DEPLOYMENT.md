@@ -1,6 +1,6 @@
 # Deployment Guide
 
-The Clinical Decision Support Tool is a single Next.js app — UI and API in one process, on one port.
+The Medical Diagnostic Tool is a single Next.js app — UI and API in one process, on one port.
 
 ## Data storage
 
