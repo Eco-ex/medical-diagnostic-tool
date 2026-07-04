@@ -17,6 +17,23 @@ Built as a single [Next.js](https://nextjs.org/) app — the UI and the API run 
 - **Dark mode** — theme toggle in the header.
 - **Responsive design** — works on desktop, tablet, and mobile.
 
+## 🗺️ Roadmap
+
+High-level view of what's planned next; full step-by-step detail lives in [planning_development/phases_4_to_12.md](planning_development/phases_4_to_12.md).
+
+**Finishing the ingestion pipeline**
+- **Phases 4b–4d** — chunking, embedding, and finalization Edge Functions
+- **Phase 5** — Next.js route for uploading PDFs into the pipeline
+- **Phase 6** — end-to-end smoke test of the full pipeline
+
+**Beyond v1 ingestion**
+- **Phase 7** — admin knowledge UI (upload, document status, search-quality sandbox)
+- **Phase 8** — retrieval-grounded (RAG) treatment analysis, replacing the current ungrounded version
+- **Phase 9** — multi-agent orchestrator (router + specialist agents + synthesizer)
+- **Phase 10** — flowchart visualization of the orchestration process
+- **Phase 11** — clinician feedback capture on AI outputs
+- **Phase 12** — learned re-ranker trained on accumulated feedback data
+
 ## 🏗️ Architecture
 
 - **Framework**: Next.js 16 (App Router) + React 19 + TypeScript.
