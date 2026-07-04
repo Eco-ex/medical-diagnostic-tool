@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import PatientDashboard from '@/components/PatientDashboard';
+import PatientDashboard from '@/components/patient/PatientDashboard';
 
 /**
  * Patient route ("/patients/[patientId]"). The id comes from the URL, so the

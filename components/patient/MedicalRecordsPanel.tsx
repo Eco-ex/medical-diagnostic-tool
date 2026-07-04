@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAddMedicalRecord, useUpdateMedicalRecord, useDeleteMedicalRecord } from '../hooks/useQueries';
+import { useAddMedicalRecord, useUpdateMedicalRecord, useDeleteMedicalRecord } from '../../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, FileText, Search, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Patient, MedicalRecord } from '../types';
+import type { Patient, MedicalRecord } from '../../types';
 
 interface MedicalRecordsPanelProps {
   patient: Patient;

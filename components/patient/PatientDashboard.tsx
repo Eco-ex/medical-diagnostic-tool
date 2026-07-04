@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useGetPatient, useDeletePatient } from '../hooks/useQueries';
+import { useGetPatient, useDeletePatient } from '../../hooks/useQueries';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,7 +29,7 @@ import ChatPanel from './ChatPanel';
 import SummaryPanel from './SummaryPanel';
 import EditPatientModal from './EditPatientModal';
 import { toast } from 'sonner';
-import type { PatientId } from '../types';
+import type { PatientId } from '../../types';
 
 interface PatientDashboardProps {
   patientId: PatientId;

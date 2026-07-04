@@ -110,7 +110,7 @@ Generate a key at [console.anthropic.com/settings/keys](https://console.anthropi
 
 **Patient data and the AI audit log are stored in Supabase Postgres** and persist across restarts.
 
-[lib/server/database.ts](lib/server/database.ts) is the single seam for persistence — every API route talks to patient data only through its async functions. Routes pass the human-facing patient id (the MRN); this layer resolves it to the internal UUID and maps DB rows to the wire types in [types.ts](types.ts). The server-only Supabase client ([lib/server/supabase.ts](lib/server/supabase.ts)) uses the secret key and therefore bypasses RLS — the trusted Next.js API route is the security boundary.
+[lib/server/database.ts](lib/server/database.ts) is the single seam for persistence — every API route talks to patient data only through its async functions. Routes pass the human-facing patient id (the MRN); this layer resolves it to the internal UUID and maps DB rows to the wire types in [types/](types/). The server-only Supabase client ([lib/server/supabase.ts](lib/server/supabase.ts)) uses the secret key and therefore bypasses RLS — the trusted Next.js API route is the security boundary.
 
 Core tables: `patients`, `vitals`, `medical_records`, `treatments`, `outcomes`, `conversations`, `chat_messages`, and `ai_interactions` (the AI audit log). The knowledge pipeline adds `documents`, `ingestion_jobs`, `chunks`, and `chunk_embeddings`.
 
@@ -152,7 +152,10 @@ medical-diagnostic-tool/
 │   └── api/                 # Route Handlers (the web backend)
 │       ├── health/
 │       └── patients/...
-├── components/              # UI components + ui/ primitives
+├── components/
+│   ├── patient/             # Patient dashboard, list, panels, modals
+│   ├── knowledge/           # Admin knowledge-ingestion UI
+│   └── ui/                  # Design-system primitives
 ├── hooks/useQueries.ts      # TanStack Query hooks
 ├── lib/
 │   ├── api.ts               # Client-side API wrapper
@@ -173,7 +176,7 @@ medical-diagnostic-tool/
 │       ├── chunk-document/  # markdown → chunks (js-tiktoken)
 │       ├── embed-batch/     # chunks → Voyage embeddings
 │       └── finalize-document/
-├── types.ts                 # Shared types
+├── types/                   # Shared types (patient, api, knowledge)
 ├── next.config.mjs
 └── Dockerfile
 ```

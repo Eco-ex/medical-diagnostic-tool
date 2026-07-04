@@ -1,4 +1,4 @@
-import PatientList from '@/components/PatientList';
+import PatientList from '@/components/patient/PatientList';
 
 /**
  * Layout for the patient-facing routes ("/" and "/patients/[patientId]").

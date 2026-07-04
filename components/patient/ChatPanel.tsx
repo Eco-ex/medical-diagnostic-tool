@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useGetChatHistory, useAddChatMessage, useAnalyzeTreatmentWithAnthropic, useGetPatient, useClearChatHistory } from '../hooks/useQueries';
+import { useGetChatHistory, useAddChatMessage, useAnalyzeTreatmentWithAnthropic, useGetPatient, useClearChatHistory } from '../../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Send, Bot, User, AlertTriangle, Loader2, AlertCircle, Settings, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { PatientId, ChatMessage } from '../types';
+import type { PatientId, ChatMessage } from '../../types';
 
 interface ChatPanelProps {
   patientId: PatientId;

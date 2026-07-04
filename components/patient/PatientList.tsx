@@ -26,9 +26,9 @@ import { Search, User, Plus, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddPatientModal from './AddPatientModal';
 import EditPatientModal from './EditPatientModal';
-import { useGetAllPatients, useDeletePatient } from '../hooks/useQueries';
+import { useGetAllPatients, useDeletePatient } from '../../hooks/useQueries';
 import { toast } from 'sonner';
-import type { Patient } from '../types';
+import type { Patient } from '../../types';
 
 function patientHref(patientId: string): string {
   return `/patients/${encodeURIComponent(patientId)}`;

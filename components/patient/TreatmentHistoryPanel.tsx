@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAddTreatment, useUpdateTreatment, useDeleteTreatment, useLogOutcome, useUpdateOutcome, useDeleteOutcome } from '../hooks/useQueries';
+import { useAddTreatment, useUpdateTreatment, useDeleteTreatment, useLogOutcome, useUpdateOutcome, useDeleteOutcome } from '../../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, Pill, ClipboardCheck, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Patient, Treatment, Outcome } from '../types';
+import type { Patient, Treatment, Outcome } from '../../types';
 
 interface TreatmentHistoryPanelProps {
   patient: Patient;
