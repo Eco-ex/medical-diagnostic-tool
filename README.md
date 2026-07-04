@@ -19,7 +19,7 @@ Built as a single [Next.js](https://nextjs.org/) app — the UI and the API run 
 
 ## 🗺️ Roadmap
 
-High-level view of what's planned next; full step-by-step detail lives in [planning_development/phases_4_to_12.md](planning_development/phases_4_to_12.md).
+High-level view of what's planned next.
 
 **Finishing the ingestion pipeline**
 - **Phases 4b–4d** — chunking, embedding, and finalization Edge Functions
