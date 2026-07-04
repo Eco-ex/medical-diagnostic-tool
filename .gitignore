@@ -1,38 +1,40 @@
 # Dependencies
-node_modules/
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+/node_modules
 
-# Environment
-.env
-.env.local
-.env.*.local
+# Next.js
+/.next/
+/out/
+next-env.d.ts
 
-# Build outputs
-dist/
-build/
+# Production build
+/build
+
+# Environment files — ignore all except the committed template
+.env*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 *.log
 
-# Data files
-data/*.json
+# Testing
+/coverage
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# TypeScript
+*.tsbuildinfo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Old backend
-backend/
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Testing
-coverage/
-.nyc_output/
-
-
+# Supabase migration
+planning_development

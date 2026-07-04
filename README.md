@@ -1,57 +1,88 @@
-# Clinical Decision Support Tool
+# Medical Diagnostic Tool
 
-A web-based tool that helps healthcare professionals analyze treatment options with AI assistance. Open the app and start working — no accounts, no login. Each user supplies their own OpenAI API key from Admin Settings; the key lives only in the browser tab and is forwarded per request.
+A web-based tool that helps healthcare professionals manage patients and analyze treatment options with AI assistance. Open the app and start working — no accounts, no login. Each user supplies their own Anthropic API key from Admin Settings; the key lives only in the browser tab and is forwarded per request.
+
+Built as a single [Next.js](https://nextjs.org/) app — the UI and the API run in one process, on one port — backed by **Supabase** (Postgres for data, Edge Functions for the knowledge pipeline).
 
 ## 🎯 Features
 
 - **No login required** — open the app and start using it.
-- **In-memory patient data** — patients, vitals, records, treatments, outcomes, and chat history are kept in a server-side `Map`. Restarting the backend wipes everything.
+- **Persistent patient data** — patients, vitals, records, treatments, outcomes, and chat history are stored in Supabase Postgres and survive restarts.
 - **Patient management** — add, edit, search, and delete patients.
 - **Medical records, treatments, outcomes, vitals, and per-patient summaries.**
-- **AI treatment analysis** — uses OpenAI chat completions. The user&apos;s key is sent per-request via the `X-OpenAI-Key` header and is never persisted server-side.
-- **Per-patient chat history.**
+- **AI treatment analysis** — uses Anthropic's Messages API (Claude). The user's key is sent per-request via the `X-Anthropic-Key` header and is never persisted server-side.
+- **AI audit log** — every analysis call (success or failure) is recorded to `ai_interactions` with the full prompt, response, token usage, and latency.
+- **Per-patient chat history** — modeled as conversations so history can be cleared without losing the AI audit trail.
+- **Knowledge ingestion pipeline** *(in development)* — a Supabase Edge Function + pgvector pipeline that turns medical PDFs into embedded, searchable chunks for retrieval-augmented analysis. See [Knowledge Ingestion Pipeline](#-knowledge-ingestion-pipeline-in-development).
 - **Dark mode** — theme toggle in the header.
 - **Responsive design** — works on desktop, tablet, and mobile.
 
+## 🗺️ Roadmap
+
+High-level view of what's planned next.
+
+**Finishing the ingestion pipeline**
+- **Phases 4b–4d** — chunking, embedding, and finalization Edge Functions
+- **Phase 5** — Next.js route for uploading PDFs into the pipeline
+- **Phase 6** — end-to-end smoke test of the full pipeline
+
+**Beyond v1 ingestion**
+- **Phase 7** — admin knowledge UI (upload, document status, search-quality sandbox)
+- **Phase 8** — retrieval-grounded (RAG) treatment analysis, replacing the current ungrounded version
+- **Phase 9** — multi-agent orchestrator (router + specialist agents + synthesizer)
+- **Phase 10** — flowchart visualization of the orchestration process
+- **Phase 11** — clinician feedback capture on AI outputs
+- **Phase 12** — learned re-ranker trained on accumulated feedback data
+
 ## 🏗️ Architecture
 
-- **Frontend**: React 18 + TypeScript + Vite + TailwindCSS + TanStack Query
-- **Backend**: Node.js + Express + TypeScript
-- **Storage**: In-memory `Map` only. No database, no JSON files. Data is lost on restart.
-- **AI**: OpenAI Chat Completions. Key is supplied per-request via the `X-OpenAI-Key` header.
-- **Tests**: Vitest on both sides.
+- **Framework**: Next.js 16 (App Router) + React 19 + TypeScript.
+- **UI**: TailwindCSS, hand-rolled UI primitives, TanStack Query for data fetching.
+- **API**: Next.js Route Handlers under [app/api/](app/api/) — same-origin, so no CORS.
+- **Storage**: Supabase Postgres, accessed only through [lib/server/database.ts](lib/server/database.ts) (the persistence seam). The server holds no patient state in memory.
+- **AI**: Anthropic Messages API (Claude). The model and prompt live in [lib/server/anthropic.ts](lib/server/anthropic.ts); the user's key is supplied per-request via the `X-Anthropic-Key` header.
+- **Knowledge pipeline**: Supabase Edge Functions (Deno) under [supabase/functions/](supabase/functions/) + pgvector, using LlamaParse for parsing and Voyage AI for embeddings.
+- **Tests**: Vitest (app code); `deno test` for the Edge Functions' pure logic.
+
+> **Deployment model:** because all state lives in Postgres, the app is stateless and can run as multiple replicas behind a load balancer or on per-request serverless platforms. See [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## 📋 Prerequisites
 
-- Node.js 20 or higher
+- Node.js 20.9 or higher (developed on Node 22)
 - npm
-- An OpenAI API key (only needed if you use the AI treatment analysis)
+- A **Supabase project** (Postgres) — required for the app to run
+- An **Anthropic API key** — optional; only needed to use AI treatment analysis (entered in-app, not via env)
+- *For the knowledge ingestion pipeline only:* the [Supabase CLI](https://supabase.com/docs/guides/cli) (bundles Deno 2), a [LlamaCloud](https://cloud.llamaindex.ai/) API key, and a [Voyage AI](https://voyageai.com/) API key
 
 ## 🚀 Quick Start
 
 ### Development
 
-Backend:
+```bash
+npm install
+```
+
+Create `.env.local` with your Supabase credentials (copy from [.env.example](.env.example)):
+
+```env
+SUPABASE_URL=https://<your-project-ref>.supabase.co
+SUPABASE_SECRET_KEY=<your-supabase-secret-key>
+```
+
+Apply the database schema — the migrations live in [supabase/migrations/](supabase/migrations/). With the Supabase CLI:
 
 ```bash
-cd backend
-npm install
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
+
+Then start the app:
+
+```bash
 npm run dev
 ```
 
-The backend runs on http://localhost:3001. The defaults in [backend/src/server.ts](backend/src/server.ts) are sufficient for local development; create a `backend/.env` only if you want to override them (see Configuration below).
-
-Frontend (in a new terminal):
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The frontend runs on http://localhost:5173.
-
-The repo root also ships [start-dev.sh](start-dev.sh) and [start-dev.bat](start-dev.bat) helper scripts that install dependencies and start both processes. They attempt to seed `.env` files from `.env.example` templates that are not currently checked in — that step prints a "not found" error and is harmless; the apps still start.
+The app runs on http://localhost:3000 — UI and API together. There is no separate backend to start.
 
 ### Docker
 
@@ -59,184 +90,185 @@ The repo root also ships [start-dev.sh](start-dev.sh) and [start-dev.bat](start-
 docker-compose up -d --build
 ```
 
-Open http://localhost:5173.
+Open http://localhost:3000. (The container still needs `SUPABASE_URL` and `SUPABASE_SECRET_KEY` in its environment.)
 
 ## 🔧 Configuration
 
-All `.env` files are optional. The backend and frontend both run with sensible defaults; create one only if you need to override.
+Copy [.env.example](.env.example) to `.env.local`. The Supabase variables are required; the rest are optional.
 
-### Backend (`backend/.env`)
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `SUPABASE_URL` | Yes | Supabase project URL. |
+| `SUPABASE_SECRET_KEY` | Yes | Supabase secret key (`sb_secret_...`). Bypasses Row Level Security, so keep it **server-only** — never expose it to the browser. |
+| `NEXT_PUBLIC_API_URL` | No | Base URL for API calls. Unset → same-origin `/api` routes (the default). Set it only to point the UI at a different host. |
+| `PORT` | No | Port for `next start` / the Docker server. Default `3000`. |
 
-```env
-PORT=3001
-NODE_ENV=development
-CORS_ORIGIN=http://localhost:5173
-```
+### Edge Function secrets (knowledge pipeline only)
 
-These are the only variables the backend reads. There is no `JWT_SECRET`, `OPENAI_API_KEY`, or `DATA_DIR` — earlier versions used those, but the current build does not.
+The Edge Functions read their secrets from the Supabase platform, not from `.env.local`. Set them with `supabase secrets set` (or in the dashboard); see [supabase/functions/.env.example](supabase/functions/.env.example).
 
-### Frontend (`frontend/.env`)
+| Variable | Purpose |
+| --- | --- |
+| `LLAMA_CLOUD_API_KEY` | LlamaParse — PDF → markdown (`parse-document`). |
+| `VOYAGE_API_KEY` | Voyage AI — chunk embeddings (`embed-batch`). |
 
-```env
-VITE_API_URL=http://localhost:3001
-```
+## 🔑 Anthropic API Key
 
-The frontend defaults to `http://localhost:3001` if no `.env` is present, so creating one is only required if you point at a different backend.
-
-## 🔑 OpenAI API Key
-
-The server never stores the OpenAI API key. To use the AI treatment analysis:
+The server never stores the Anthropic API key. To use the AI treatment analysis:
 
 1. Open the app and click **Admin Settings** in the header.
-2. Paste your OpenAI key (starts with `sk-`) and click **Save key**.
-3. The key is saved in the current tab&apos;s `sessionStorage` and is sent only when you trigger an AI analysis, via the `X-OpenAI-Key` request header.
+2. Paste your Anthropic key (starts with `sk-ant-`) and click **Save key**.
+3. The key is saved in the current tab's `sessionStorage` and is sent only when you trigger an AI analysis, via the `X-Anthropic-Key` request header.
 4. Closing the tab clears the key. Each user/device sets their own.
 
-Generate a key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys). It needs access to chat completions and an active billing plan.
+Generate a key at [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys). It needs access to the Messages API and an active billing plan.
 
 ## 🗄️ Data Persistence
 
-**Patient data is held in memory only.** It is wiped on every server restart. This is intentional for the current scope; for persistent storage you would plug a database into [backend/src/services/database.ts](backend/src/services/database.ts) — that file is the single source of truth for the patient store.
+**Patient data and the AI audit log are stored in Supabase Postgres** and persist across restarts.
 
-The repo contains a `backend/data/` directory with `patients.json`, `users.json`, `settings.json`, and `audit-logs.json`. These are leftovers from an earlier file-backed, JWT-authenticated version of the backend; the current code does not read or write them and they can be ignored.
+[lib/server/database.ts](lib/server/database.ts) is the single seam for persistence — every API route talks to patient data only through its async functions. Routes pass the human-facing patient id (the MRN); this layer resolves it to the internal UUID and maps DB rows to the wire types in [types/](types/). The server-only Supabase client ([lib/server/supabase.ts](lib/server/supabase.ts)) uses the secret key and therefore bypasses RLS — the trusted Next.js API route is the security boundary.
+
+Core tables: `patients`, `vitals`, `medical_records`, `treatments`, `outcomes`, `conversations`, `chat_messages`, and `ai_interactions` (the AI audit log). The knowledge pipeline adds `documents`, `ingestion_jobs`, `chunks`, and `chunk_embeddings`.
+
+## 📚 Knowledge Ingestion Pipeline (in development)
+
+A retrieval-augmented-generation (RAG) knowledge base is being built on Supabase Edge Functions (Deno) + pgvector. It turns uploaded medical PDFs into embedded, searchable chunks:
+
+1. **`parse-document`** — PDF → markdown via LlamaParse, saved to Storage.
+2. **`chunk-document`** — section-aware chunking (heading hierarchy, atomic tables/code/lists) sized with `js-tiktoken`.
+3. **`embed-batch`** — chunk text → 1024-dim Voyage (`voyage-4-large`) vectors, upserted into `chunk_embeddings`.
+4. **`finalize-document`** — flips a document to `indexed` once all chunks are embedded.
+
+Retrieval is exposed via the `match_chunks()` Postgres function (HNSW cosine index over `chunk_embeddings`).
+
+**Status:** `parse-document`, `chunk-document`, and `embed-batch` are implemented; `finalize-document`, the browser upload route, the admin knowledge UI, and retrieval-grounded analysis are still in progress. **This subsystem is not user-facing yet** — the patient-management app above works without it.
 
 ## 🔒 Security Notes
 
-- CORS configured per environment via `CORS_ORIGIN`.
-- Helmet.js security headers on the backend; strict CSP and `X-Frame-Options`/`Referrer-Policy`/`Permissions-Policy` headers on the Nginx-served frontend.
-- Input validation on patient mutations.
-- API keys are never stored server-side; the client provides them per-request and the server only uses them to forward to OpenAI.
-- `X-OpenAI-Key` is shape-validated and stripped from `req.headers` by middleware before any logger sees it, so request logs cannot leak the key.
-- `/analyze-treatment` is rate-limited per IP (10 req/min) to prevent the backend being used as an open proxy to OpenAI.
+- UI and API are same-origin, so there is no CORS surface.
+- Security headers (CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-DNS-Prefetch-Control`) are set in [next.config.mjs](next.config.mjs).
+- The Supabase **secret key is server-only** and bypasses RLS; it is never sent to the browser.
+- Anthropic API keys are never stored server-side; the client provides them per-request and the server only uses them to forward to Anthropic. `X-Anthropic-Key` is shape-validated by [lib/server/anthropic-key.ts](lib/server/anthropic-key.ts) before being forwarded, and only the last 4 characters are recorded (in the audit log).
+- `/api/patients/[id]/analyze-treatment` is rate-limited per IP (10 req/min) to prevent the backend being used as an open proxy to Anthropic.
+- **Known CSP relaxation:** `script-src` allows `'unsafe-inline'` because Next.js injects inline bootstrap scripts. See the comment in [next.config.mjs](next.config.mjs) for the nonce-based remediation.
 
 ## 📁 Project Structure
 
 ```
 medical-diagnostic-tool/
-├── backend/              # Express backend
-│   ├── src/
-│   │   ├── server.ts         # App entry
-│   │   ├── routes/           # /api/patients/*
-│   │   ├── services/         # database (in-memory) + openai
-│   │   └── types.ts          # Shared types
-│   └── Dockerfile
-├── frontend/                 # React + Vite app
-│   ├── src/
-│   │   ├── App.tsx           # Root, no auth gate
-│   │   ├── components/       # UI + AdminSettings
-│   │   ├── hooks/useQueries.ts
-│   │   ├── lib/api.ts        # API client + sessionStorage helpers
-│   │   └── types.ts
-│   ├── nginx.conf
-│   └── Dockerfile
-├── docker-compose.yml
-├── start-dev.sh / start-dev.bat
-└── README.md
+├── app/
+│   ├── layout.tsx           # Root layout: app shell + global Header
+│   ├── providers.tsx        # Client providers (Query, theme, toaster)
+│   ├── (dashboard)/         # Route group: patient sidebar layout
+│   │   ├── layout.tsx       # Adds the PatientList sidebar
+│   │   ├── page.tsx         # "/" — empty state
+│   │   └── patients/[patientId]/page.tsx  # "/patients/:id" — dashboard
+│   ├── admin/page.tsx       # "/admin" — settings (no sidebar)
+│   ├── globals.css
+│   └── api/                 # Route Handlers (the web backend)
+│       ├── health/
+│       └── patients/...
+├── components/
+│   ├── patient/             # Patient dashboard, list, panels, modals
+│   ├── knowledge/           # Admin knowledge-ingestion UI
+│   └── ui/                  # Design-system primitives
+├── hooks/useQueries.ts      # TanStack Query hooks
+├── lib/
+│   ├── api.ts               # Client-side API wrapper
+│   ├── utils.ts
+│   └── server/              # Server-only modules
+│       ├── supabase.ts      # Supabase client (secret key, bypasses RLS)
+│       ├── database.ts      # Persistence layer (Postgres) — the seam
+│       ├── ai-interactions.ts # AI audit-log writer (ai_interactions)
+│       ├── anthropic.ts     # Anthropic Messages API client
+│       ├── anthropic-key.ts # X-Anthropic-Key validation
+│       └── rate-limit.ts
+├── supabase/
+│   ├── config.toml
+│   ├── migrations/          # SQL schema (patient tables + pgvector)
+│   └── functions/           # Deno Edge Functions
+│       ├── _shared/         # supabase / db / llama / voyage clients
+│       ├── parse-document/  # PDF → markdown (LlamaParse)
+│       ├── chunk-document/  # markdown → chunks (js-tiktoken)
+│       ├── embed-batch/     # chunks → Voyage embeddings
+│       └── finalize-document/
+├── types/                   # Shared types (patient, api, knowledge)
+├── next.config.mjs
+└── Dockerfile
 ```
 
 ## 🔌 API Endpoints
 
 ### Health
 
-- `GET /health` — health check
+- `GET /api/health` — health check
 
 ### Patients
 
 - `GET /api/patients` — list patients
-- `GET /api/patients/:id` — get a patient
-- `GET /api/patients/search/:term` — search patients by name or id
 - `POST /api/patients` — add a patient
-- `PUT /api/patients/:id` — update a patient
-- `DELETE /api/patients/:id` — delete a patient
+- `GET /api/patients/[id]` — get a patient
+- `PUT /api/patients/[id]` — update a patient
+- `DELETE /api/patients/[id]` — delete a patient
+- `GET /api/patients/search/[term]` — search patients by name or id
 
 ### Patient Data
 
-- `PUT /api/patients/:id/vitals` — update vitals
-- `POST/PUT/DELETE /api/patients/:id/medical-records[/:recordId]` — manage medical records
-- `POST/PUT/DELETE /api/patients/:id/treatments[/:treatmentId]` — manage treatments (deleting a treatment also deletes its outcomes)
-- `POST/PUT/DELETE /api/patients/:id/outcomes[/:outcomeId]` — manage outcomes
-- `GET/PUT /api/patients/:id/summary` — view/update reason for visit and patient report
+- `PUT /api/patients/[id]/vitals` — append a vitals reading (current = most recent)
+- `POST /api/patients/[id]/medical-records`, `PUT|DELETE .../[recordId]` — manage medical records
+- `POST /api/patients/[id]/treatments`, `PUT|DELETE .../[treatmentId]` — manage treatments (deleting a treatment cascade-deletes its outcomes)
+- `POST /api/patients/[id]/outcomes`, `PUT|DELETE .../[outcomeId]` — manage outcomes
+- `GET|PUT /api/patients/[id]/summary` — view/update reason for visit and patient report
 
 ### AI & Chat
 
-- `POST /api/patients/:id/analyze-treatment` — analyze treatment (requires `X-OpenAI-Key` header)
-- `GET /api/patients/:id/chat` — get chat history
-- `POST /api/patients/:id/chat` — append a chat message
-- `DELETE /api/patients/:id/chat` — clear chat history
-
-There are no auth, admin, or user endpoints — they were removed along with login.
+- `POST /api/patients/[id]/analyze-treatment` — analyze treatment (requires `X-Anthropic-Key` header; recorded to `ai_interactions`)
+- `GET /api/patients/[id]/chat` — get chat history
+- `POST /api/patients/[id]/chat` — append a chat message
+- `DELETE /api/patients/[id]/chat` — clear chat history
 
 ## 🧪 Testing
 
-Both projects use [Vitest](https://vitest.dev/).
-
 ```bash
-# Backend
-cd backend
-npm test           # one-shot
+npm test           # one-shot (Vitest)
 npm run test:watch # watch mode
-
-# Frontend
-cd frontend
-npm test
+npm run lint       # ESLint
 ```
 
-Lint and format:
+The Edge Functions' pure logic has its own tests run with Deno, e.g.:
 
 ```bash
-# Backend
-cd backend
-npm run lint
-npm run format
-
-# Frontend
-cd frontend
-npm run lint
+deno test --no-check --allow-read --allow-net --allow-env \
+  --config supabase/functions/chunk-document/deno.json \
+  supabase/functions/chunk-document/chunk.test.ts
 ```
 
 ## 📦 Production Deployment
 
-### Docker
-
 ```bash
-docker-compose up -d --build
-```
-
-The compose file starts a backend container on `3001` and an Nginx-served frontend on `5173` (host port `5173` → container port `80`). Patient data lives in the backend container&apos;s memory and resets when the container restarts.
-
-Note: [docker-compose.yml](docker-compose.yml) still passes `JWT_SECRET` and `DATA_DIR` to the backend and bind-mounts `./data` into the container. These come from the previous file-backed version and are ignored by the current backend; they do not need to be set, but they have not yet been removed from the compose file.
-
-### Manual
-
-```bash
-# Backend
-cd backend
 npm install
 npm run build
 npm start
-
-# Frontend
-cd frontend
-npm install
-npm run build
-# Serve dist/ with Nginx, Caddy, Vercel, Netlify, etc.
 ```
+
+`next build` emits a standalone server build that the [Dockerfile](Dockerfile) packages into a single image. The app is stateless (all data is in Postgres), so it can scale horizontally. See [DEPLOYMENT.md](DEPLOYMENT.md) for details, and apply the schema from [supabase/migrations/](supabase/migrations/) before first run.
 
 ## 🐛 Troubleshooting
 
-### Backend won&apos;t start
-- Check that port 3001 is available.
-- Ensure Node.js version is 20 or higher.
+### App won't start
+- Check that port 3000 is available.
+- Ensure Node.js version is 20.9 or higher.
+- Confirm `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are set — the server throws on startup if either is missing.
 
-### Frontend can&apos;t connect to backend
-- Verify the backend is running on port 3001.
-- Check `VITE_API_URL` in `frontend/.env`.
-- Check `CORS_ORIGIN` in `backend/.env`.
+### Database errors
+- Verify the schema has been applied (`supabase db push`, or run the SQL in [supabase/migrations/](supabase/migrations/)).
+- Confirm the secret key is the `sb_secret_...` key, not the publishable/anon key.
 
-### OpenAI integration not working
+### Anthropic integration not working
 - Open Admin Settings and confirm a key is saved for this tab.
 - The key is per-tab — opening a new tab requires re-entering it.
-- Confirm the key starts with `sk-` and has chat-completion permission.
+- Confirm the key starts with `sk-ant-` and has Messages API permission.
 
 ## 📝 License
 
